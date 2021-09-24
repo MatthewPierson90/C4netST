@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Aug  4 10:41:44 2021
-
 @author: Matthew
+
+A bunch of functions used at various times for dealing with collected data.
+Most are no longer used.
 """
 
-from CNNoperations import ssigmoid
 from copy import deepcopy
 import numpy as np
-import pandas as pd
 import pickle
-############################################################
+
 def rlen(lst,start =0):
     return range(start,len(lst))
 
@@ -113,24 +112,16 @@ def array_to_board(array,h=7,w=6):
         board = transpose_array.reshape(num,h,w)
     return(board)
 
-# if __name__=='__main__':
-#     check = np.array([n for n in range(42)])
-#     check3 = np.array([[n for n in range(42)]]*1000000).T
-#     check2 = array_to_board(check)
-#     print(check2)
-#     print(array_to_board(check3).shape)
+
     
 def save_data(data,file='base_layer.pkl'):
-    #----------------------------------------------------------
     with open(file,'wb+') as pkl_file:
         pickle.dump(data,pkl_file,-1)
         #print('saved')
         pkl_file.close()
-#----------------------------------------------------------
 
 
 def open_file(file='ar.pkl'):
-    #----------------------------------------------------------
     with open(file,'rb+') as pkl_file:
         ar=pickle.load(pkl_file)
         pkl_file.close()
@@ -237,10 +228,6 @@ def make_data_for_CNN_unflattened():
     data.append(np.array(fixed_results))
     return(data)
 
-# data = make_data_for_CNN_unflattened()
-# init_boards = np.array(data[1])
-# init_scores = data[4]
-# init_results = data[5]
 
 def train_test_split(data,test_size=None):
     data = shuffle_all_data(data)
@@ -256,17 +243,6 @@ def train_test_split(data,test_size=None):
     train_data = [train_boards,train_moves,train_results]
     
     return(train_data,test_data)
-
-
-# def fix_first_mcts_data():
-#     data = open_file('Data_MCTS_W_C4NET_It1.pkl')
-#     for item in data:
-#         boards = item[0]
-#         x_moves = boards[:,:,0].sum()
-#         o_moves = boards[:,:,1].sum()
-#         turn_count = x_moves-o_moves+1
-#         item.insert(0,turn_count)
-#     save_data(data,'Data_MCTS_W_C4NET_It1_added_turn_count.pkl')
 
 def mcts_data(file):
     data = open_file(file)
@@ -284,22 +260,3 @@ def mcts_data(file):
     return(boards,scores,results)
 
 
-#  
-# data = get_score_data()
-# data = make_data_for_CNN_unflattened()
-# # data = make_data_for_CNN_flattened()
-# boards1 = deepcopy(data[0])
-# scores = data[1]
-# results = data[2]
-# boards1copy1 = deepcopy(boards1)
-# boards1copy1[boards1copy1==2]=-1
-# boards_lst = []
-# for n in rlen(boards1):
-#     board1 = boards1[n]
-#     board2 = boards1copy1[n]
-#     board1[board1==2]=0
-#     board2[board2==1]=0
-#     two_boards = np.array([board1,board2])
-#     boards_lst.append(two_boards)
-# boards2=np.array(boards_lst)
-# boards = np.moveaxis(boards2, 1, -1)

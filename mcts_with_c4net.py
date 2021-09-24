@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 """
-Created on Wed Jul 14 22:02:46 2021
-
 @author: Matthew
+
+everything for the tree
 """
 import os
 import logging
@@ -15,17 +14,29 @@ import numpy as np
 from copy import deepcopy
 import time
 tt = time.time
-# from numba_board_functions import available_moves,has_won,make_move,new_board
-from Using_numba_current import has_won,new_board,minimax
+from minimax_functions import has_won,new_board,minimax
 rng = np.random.default_rng()
 np.set_printoptions(suppress=True)
-# set_tf_loglevel(100)
-# import tensorflow as tf
-# from tensorflow import keras
-# from tensorflow.keras import layers
+import pathlib
+file_path = str(pathlib.Path(__file__).parent.resolve())+'\\c4netST_versions\\testversion'
 
 
-def make_eval_function(to_load='C:/Users/matth/python/connectfour/c4netST/Version 2/c4netST_versions/c4netST_0_0'):
+def make_eval_function(to_load = file_path):
+    """
+    This function turns a keras model into a tensorflow lite model, and sets it to run on the CPU.  
+    tflite models evaluate faster, and setting it to run on the cpu allows for easier parallel 
+    data generation on a machine with a single CPU and GPU.
+
+    Parameters
+    ----------
+    to_load : a string
+        The path to the keras model to load
+
+    Returns
+    -------
+    a tflite model.
+
+    """
     import os
     import logging
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -88,9 +99,6 @@ def make_eval_function(to_load='C:/Users/matth/python/connectfour/c4netST/Versio
         model_eval = function(model,input_signature = [TensorSpec(model.inputs[0].shape, model.inputs[0].dtype)])
         concrete_model_eval = model_eval.get_concrete_function()
         lite_model = lite_model_class.from_concrete_function(concrete_model_eval)
-    # lite_eval = lite_model.predict
-    # set_tf_loglevel(0)
-    # del lite
     del load_model
     del model
     del function
@@ -101,28 +109,48 @@ def make_eval_function(to_load='C:/Users/matth/python/connectfour/c4netST/Versio
 
 
 def open_data(file='base_layer.pkl'):
-    #----------------------------------------------------------
+    """
+    opens pickle files.
+    
+    """
     with open(file,'rb+') as pkl_file:
         layer1=pickle.load(pkl_file)
         pkl_file.close()
     return(layer1)
-#----------------------------------------------------------
 
 def save_data(data,file='base_layer.pkl'):
-    #----------------------------------------------------------
+    """
+    saves pickle files
+
+    """
     with open(file,'wb+') as pkl_file:
         pickle.dump(data,pkl_file,-1)
         #print('saved')
         pkl_file.close()
-#----------------------------------------------------------
 
 
 def rlen(lst,start =0):
+    """
+    returns range(start,len(lst))
+
+    Parameters
+    ----------
+    lst : 
+        a list
+    start : 
+        the value to start at. The default is 0.
+
+    Returns
+    -------
+    range(start,len(lst))
+    """
     return range(start,len(lst))
 
 
 def board_str(board):
-    #-------------------------------------------------------------------
+    """
+    turns a board into a string.
+    """
     bs ='\n|1|2|3|4|5|6|7|\n+-+-+-+-+-+-+-+\n'
     for n in range(6):
         bs+='|'
@@ -136,23 +164,13 @@ def board_str(board):
             bs+=to_add+'|'
         bs+='\n'
     return(bs)
-    #-------------------------------------------------------------------
 
-
-def board_str_save(board):
-    #-------------------------------------------------------------------
-    bs =''
-    for n in range(6):
-        for m in range(7):
-            if board[m,n]==' ':
-                bs+='S'
-            else:
-                bs+=board[m,n]
-    return(bs)
-    #-------------------------------------------------------------------
 
 
 def available_moves(board):
+    """
+    determines the available moves
+    """
     moves = np.zeros(7)
     for n in range(7):
         if board[n][0]==0:
@@ -162,7 +180,23 @@ def available_moves(board):
 
 
 def make_move(board, col, player):
-    # print('in make move')
+    """
+    makes a move on the board
+
+    Parameters
+    ----------
+    board : np.array
+        the board
+    col : int
+        the column the player will drop their piece down
+    player : int
+        1 or 2.
+
+    Returns
+    -------
+    The new board.
+
+    """
     for n in range(6):
         if n == 5:
             board[col-1][n] = player
@@ -174,6 +208,11 @@ def make_move(board, col, player):
 
 
 class node_class(object):
+    """
+    A game board, with all of the possible moves that can be made, 
+    scores for all of the possible moves that can be made,
+    the tflite model used for evaluating the boards.
+    """
     def __init__(self,
                  state,
                  model_eval_func,
@@ -182,7 +221,6 @@ class node_class(object):
                  player_num = 1,
                  add_noise = True,
                  true_root = None):
-        # toc=tt()
         if true_root == None:
             self.true_root = self
             self.edges_visited = set([])
@@ -201,35 +239,24 @@ class node_class(object):
         self.split_board = np.array([self.x_state,self.o_state])
         self.split_board = np.moveaxis(self.split_board, 0, -1)
         self.boardstr=board_str(self.state)
-        # tic = tt()
-        
-        # print('make info board time:',tic-toc)
-        # toc = tt()
         self.moves = available_moves(state)
-        # tic = tt()
-        # print('finding move time:',tic-toc)
         self.player = player
         self.player_num = player_num
         self.model_eval_func = model_eval_func
         self.is_leaf = False
         if has_won(state,1):
             self.is_leaf = True
-            self.result =1
+            self.result = 1
         elif has_won(state,2):
             self.is_leaf = True
-            self.result =2
+            self.result = 2
         elif max(self.moves)==0:
             self.is_leaf = True
             self.result = 0
         if not self.is_leaf:
-            # toc = tt()
-            # self.model_P = self.model_eval_func(np.array([self.split_board]))[0].numpy()[0]
             model_P,model_V = self.model_eval_func.predict(self.split_board)
             self.model_V = model_V[0]
             self.model_P = model_P
-            # tic=tt()
-            # print('evaluate model time:',tic-toc)
-            # toc=tt()
             self.edges = [edge_class(state=state,
                                      action = move+1,
                                      model_eval_func = model_eval_func,
@@ -242,9 +269,6 @@ class node_class(object):
                                      true_root = self.true_root) for move in range(7) if self.moves[move]==1]
             self.pi = np.zeros(7)
             self.layer_N = 0
-            # tic = tt()
-            # print('makeing edge time:',tic-toc)
-
             self.update_edge_with_max_av()
             
     def update_pi(self):
@@ -255,41 +279,34 @@ class node_class(object):
             if self.max_pi<new_pi:
                 self.max_pi = new_pi
                 self.edge_max_pi = edge
+                
     def update_edge_with_max_av(self):
             self.max_av=-np.inf
             for edge in self.edges:
                 if edge.av > self.max_av:
                     self.max_av = edge.av
                     self.edge_with_max_av = edge
+                    
     def reset(self,new_dirc = None):
         self.pi = np.zeros(7)
         self.layer_N = 0
         self.max_av=-np.inf
         self.max_pi = 0
-        # if self.add_noise and (new_dirc!=None)[0]:
-        #     self.dirc = new_dirc
-        #     for edge in self.edges:
-        #         edge.P = .75*self.model_P[edge.action-1]+.25*self.dirc[edge.action-1]
-    # def __eq__(self,other):
-    #     #-------------------------------------------------------------------
-    #     if not isinstance(other, node_class):
-    #         return NotImplemented
-    #     return(self.state == other.state and self.action == other.action)
-    # #-------------------------------------------------------------------
+
     
     def __str__(self):
-        #-------------------------------------------------------------------
         return 'Board:\n{0} \nPlayer: {1}\n'.format(self.boardstr,self.player)
-    #-------------------------------------------------------------------
         
     def __repr__(self):
-        #-------------------------------------------------------------------
         return str(self)
-    #-------------------------------------------------------------------
 
 
 class edge_class(object):
-    ####################################################################
+    """
+    the moves that can be made from a node,
+    the new nodes location,
+    all kinds of good stuffs.
+    """
     def __init__(self,
                  state,
                  action,
@@ -301,7 +318,6 @@ class edge_class(object):
                  player_num = 1,
                  add_noise = True,
                  true_root = None):
-        #-------------------------------------------------------------------
         self.true_root = true_root
         self.state =state
         self.boardstr=board_str(self.state)
@@ -323,12 +339,11 @@ class edge_class(object):
         self.N = 0 #number of visits
         self.Q = 0 #score
         self.C = 1 #constant
-        self.W=0
-        self.Pi=0
+        self.W = 0
+        self.Pi = 0
         preU=self.C*self.P
         self.U = preU #base ratio
         self.av = self.Q+self.U #action value
-        #-------------------------------------------------------------------
     def make_target_node(self):
         if self.made_target_node == 1:
             return self.target_node
@@ -358,8 +373,8 @@ class edge_class(object):
                 self.model_source_V_WRT_target=1
             self.V_diff = self.model_source_V_WRT_target-self.model_source_V
             return self.target_node
+        
     def update(self,result):
-        #-------------------------------------------------------------------
         self.N+=1
         self.source_node.layer_N+=1
         if result == self.player_num:
@@ -373,7 +388,6 @@ class edge_class(object):
         self.Q = self.W/(1+self.N)
         self.av = self.Q+self.U
     def update_with_v(self,w_guess,new_player_num):
-        #-------------------------------------------------------------------
         self.N+=1
         self.source_node.layer_N+=1
         if new_player_num == self.player_num:
@@ -386,7 +400,6 @@ class edge_class(object):
         self.U = preU
         self.Q = self.W/(1+self.N)
         self.av = self.Q+self.U
-    #-------------------------------------------------------------------
     def reset(self,reset_dirc = False,new_dirc = None):
         self.made_target_node = 2
         self.source_node.reset()
@@ -401,36 +414,33 @@ class edge_class(object):
         preU=self.C*self.P
         self.U = preU #base ratio
         self.av = self.Q+self.U
-
-    
-    # def __eq__(self,other):
-    #     #-------------------------------------------------------------------
-    #     if not isinstance(other, edge_class):
-    #         return NotImplemented
-    #     return(self.state == other.state and self.action == other.action)
-    # #-------------------------------------------------------------------
-    
     def __str__(self):
-        #-------------------------------------------------------------------
         return 'board:\n{0}making move:{1} \nPlayer:{2}\n'.format(self.boardstr,self.action,self.player)
-    #-------------------------------------------------------------------
         
     def __repr__(self):
-        #-------------------------------------------------------------------
         return str(self)
-    #-------------------------------------------------------------------
-        
-        
-####################################################################
+
 
 
 def tree_node_edge_count(root_node):
+    """
+    counts the number of nodes visited and edges seen.
+
+    Parameters
+    ----------
+    root_node : original node of the tree
+
+    Returns
+    -------
+    the number of unique nodes and edges seen.
+
+    """
     node_count = 1
-    edge_count =0
+    edge_count = 0
     if not root_node.is_leaf:
         for edge in root_node.edges:
-            edge_count+=1
-            if edge.made_target_node==1:
+            edge_count += 1
+            if edge.made_target_node == 1:
                 to_add_node_count,to_add_edge_count=tree_node_edge_count(edge.target_node)
                 node_count+=to_add_node_count
                 edge_count+=to_add_edge_count
@@ -440,6 +450,35 @@ def tree_node_edge_count(root_node):
 
 
 def print_node_edge_info(node,print_all = False,av=True,W=False,N=False,layer_N=False, P=False,U=False,Q=False):
+    """
+    prints all of the info for a given node and its source edges. 
+
+    Parameters
+    ----------
+    node : Node
+        a node!
+    print_all : boolean, optional
+        print all info? The default is False.
+    av : boolean, optional
+        print action value info for each edge? The default is True.
+    W : boolean, optional
+        print w (wins - losses going down this edge) info? The default is False.
+    N : boolean, optional
+        print N (edge visit count) info? The default is False.
+    layer_N : boolean, optional
+        print (node visit count) info? The default is False.
+    P : boolean, optional
+        print P info? The default is False.
+    U : boolean, optional
+        print U by visit count info? The default is False.
+    Q : boolean, optional
+        print Q info? The default is False.
+
+    Returns
+    -------
+    None.  Prints desired info
+
+    """
     if print_all:
         print('Node visit count:',node.layer_N)
         count = 0
@@ -477,12 +516,44 @@ def print_node_edge_info(node,print_all = False,av=True,W=False,N=False,layer_N=
                 print('Current av:',round(edge.av,3))
 
 def make_new_tree(model,add_noise = True):
+    """
+    makes a new tree, aka makes the root node.  
+
+    Parameters
+    ----------
+    model : keras model
+    add_noise : Boolean
+        adds dirac delta noise to promote exploration. The default is True.
+
+    Returns
+    -------
+    a root node.
+
+    """
     return(node_class(new_board(),model,add_noise=add_noise))
 
 
 def simulate(root_node,
-             itterations=2,
+             itterations = 1000,
              reset_edges = True):
+    """
+    makes a number of unique simulated moves to adjust the edge and node values
+
+    Parameters
+    ----------
+    root_node : a root node
+    itterations : int, optional
+        The number of itterations to make
+    reset_edges : boolean, optional
+        Keeps track of the edges visited, after the game, 
+        the edges will be kept but their info cleared. 
+        The default is True.
+
+    Returns
+    -------
+    The total number of moves made.
+
+    """
     num_moves = 0
     for n in range(itterations):
         new_node = root_node
@@ -514,23 +585,38 @@ def simulate(root_node,
     return(num_moves)
 
 
-# version_path = 'C:/Users/matth/python/connectfour/c4netST/V2/c4netST_versions/c4netST_1-1'
-# model = make_eval_function(version_path)
-# root_node = make_new_tree(model)
-# toc = tt()
-# print(simulate(root_node,1000))
-# tic = tt()
-# print(root_node.pi)
-# print(tic-toc)
-# print(len(root_node.true_root.edges_visited))
-
 
 def self_train(model = None,
                root_node = None,
-               itterations = 20,
+               itterations = 1000,
                print_true = True,
                reset_edges = False,
                print_final = True):
+    """
+    The MCTS model plays itself. Note, one of model or rootnode must not be none
+
+    Parameters
+    ----------
+    model : tflite model, optional
+        the model used to evaluate the board state. The default is None.
+    root_node : root node, optional
+        a root node. The default is None.
+    itterations : int, optional
+        num itterations to make. The default is 1000.
+    print_true : boolean, optional
+        each game board. The default is True.
+    reset_edges : boolean, optional
+        if true, resets all of the visited 
+        edge and node info. The default is False.
+    print_final : TYPE, optional
+        If true and print_true is false, then the final board is printed.
+        The default is True.
+
+    Returns
+    -------
+    the result and game data.
+
+    """
     if root_node == None:
         root_node = make_new_tree(model)
     data = []
@@ -583,6 +669,32 @@ def self_train_test(model = None,
                print_true = True,
                reset_edges = False,
                print_final = True):
+    """
+    The MCTS model plays itself, but doesn't collect game data.
+    Note, one of model or rootnode must not be none
+
+    Parameters
+    ----------
+    model : tflite model, optional
+        the model used to evaluate the board state. The default is None.
+    root_node : root node, optional
+        a root node. The default is None.
+    itterations : int, optional
+        num itterations to make. The default is 1000.
+    print_true : boolean, optional
+        each game board. The default is True.
+    reset_edges : boolean, optional
+        if true, resets all of the visited 
+        edge and node info. The default is False.
+    print_final : TYPE, optional
+        If true and print_true is false, then the final board is printed.
+        The default is True.
+
+    Returns
+    -------
+    The total simulation time and number of moves made
+
+    """
     if root_node == None:
         root_node = make_new_tree(model)
     data = []
@@ -641,70 +753,6 @@ def self_train_test(model = None,
 
     return(sim_time,turn_count-1)
 
-# if __name__ == '__main__':
-#     version_path = 'C:/Users/matth/python/connectfour/c4netST/V2/c4netST_versions/c4netST_1-1'
-#     model = make_eval_function(version_path)
-    
-
-#     time = 0
-#     itts = 50
-#     total_sim_time = 0
-#     total_sim_itts = 0
-#     for n in range(itts):
-#         if n%25 == 0:
-#             root_node = make_new_tree(model = model, add_noise = True)
-#         print('\nGame',n+1)
-#         toc =tt()
-#         sim_time,sim_itts = self_train_test(root_node = root_node,
-#                                        itterations =1000,
-#                                        print_true = False,
-#                                        reset_edges = True,
-#                                        print_final = True)
-#         tic = tt()
-#         total_sim_time+=sim_time
-#         total_sim_itts+=sim_itts
-#         time += tic-toc
-#         print('game time:',tic-toc)
-#         print('Current avg time:',(time)/(n+1))
-#         print('Total sim time avg:',total_sim_time/total_sim_itts)
-#     print('Avg time:',(time)/itts)
-#     print('')
-#     print('-'*50)
-#     print('')
-#     del root_node
-#     del model
-#     import tensorflow.keras.backend as K
-#     K.clear_session()
-#     model = make_eval_function(version_path)
-#     time = 0
-#     for n in range(itts):
-#         print('\nGame',n+1)
-#         root_node = make_new_tree(model = model, add_noise = True)
-#         toc =tt()
-#         sim_time,sim_itts = self_train_test(root_node = root_node,
-#                                        itterations =1000,
-#                                        print_true = False,
-#                                        reset_edges = False,
-#                                        print_final = True)
-#         tic = tt()
-#         total_sim_time+=sim_time
-#         total_sim_itts+=sim_itts
-#         time += tic-toc
-#         print('game time:',tic-toc)
-#         print('Current avg time:',(time)/(n+1))
-#         print('Total sim time avg:',total_sim_time/total_sim_itts)
-#     print('Avg time:',(time)/itts)
-
-
-
-
-
-# def soft(array):
-#     to_return = np.exp(array)
-#     array_sum = to_return.sum()
-#     to_return = to_return/array_sum
-#     return(to_return)
-# from Using_Keras_current import soft
 
 def play_mini(root_node,
               as_x = True,
@@ -712,13 +760,50 @@ def play_mini(root_node,
               print_true = True,
               depth = 4,
               row_mult = 1.5,
-              col_mult = 1,
+              col_mult = 1.,
               diag_mult = 1.5,
               len_4_vals = open_data('array_n_values/len_4_values.pkl'),
               len_5_vals = open_data('array_n_values/len_5_values.pkl'),
               len_6_vals = open_data('array_n_values/len_6_values.pkl'),
               len_7_vals = open_data('array_n_values/len_7_values.pkl'),
               print_final_board = False):
+    """
+    has MCTS model play a minimax.
+    Parameters
+    ----------
+    root_node : root node, optional
+        a root node. The default is None.
+    itterations : int, optional
+        num itterations to make. The default is 1000.
+    print_true : boolean, optional
+        each game board. The default is True.
+    depth : int, optional
+        minimax depth, default is 4.
+    row_mult : float, optional
+        row multiplier, if high minimax will prioritize rows. The default is 1.5.
+    col_mult : float, optional
+        column multiplier, if high minimax will prioritize columns. The default is 1.
+    diag_mult : float, optional
+        diagonal multiplier, if high minimax will prioritize diagonals. The default is 1.5.
+    len_4_vals : np array, optional
+        Precomputed values, if you can figure it out, you can change how much minimax 
+        prioritizes three streaks  over two streaks. 
+        The default is open_data('array_n_values/len_4_values.pkl').
+    len_5_vals : np array, optional
+        Precomputed values. The default is open_data('array_n_values/len_5_values.pkl').
+    len_6_vals : np array, optional
+        Precomputed values. The default is open_data('array_n_values/len_6_values.pkl').
+    len_7_vals : np array, optional
+        Precomputed values. The default is open_data('array_n_values/len_7_values.pkl').
+    print_final : TYPE, optional
+        If true and print_true is false, then the final board is printed.
+        The default is True.
+
+    Returns
+    -------
+    The winner and game data
+
+    """
     data = []
     turn_count =1
     if as_x:
@@ -777,10 +862,10 @@ def play_mini(root_node,
     for item in data:
         item.append(root_node.result)
     beat_mini=0
-    if as_x and root_node.result==1:
-        beat_mini=1
-    elif not as_x and root_node.result==2:
-        beat_mini=1
+    if as_x and root_node.result == 1:
+        beat_mini = 1
+    elif not as_x and root_node.result == 2:
+        beat_mini = 1
     # del root_node
     return(beat_mini,data)
 
@@ -790,10 +875,43 @@ def multi_play_mini(as_x,
                     len_6_vals,
                     len_7_vals,
                     depth,
-                    in_game_itterations = 200,
-                    training_itterations = 2000,
+                    in_game_itterations = 1000,
+                    training_itterations = 1,
                     num_games = 25,
-                    version_path = 'C:/Users/matth/python/connectfour/c4netST/V2/c4netST_versions/c4netST_0-0'):
+                    version_path = file_path):
+    """
+    Intended to be used with multiprocessing. The multiprocessing call is in the training pipeline file.
+
+    Parameters
+    ----------
+    as_x : boolean
+        if True, MCTS plays as X
+    len_4_vals : np array
+        Precomputed values, will be loaded prior to the multiprocessing call.
+    len_5_vals : np array
+        Precomputed values, will be loaded prior to the multiprocessing call.
+    len_6_vals : np array
+        Precomputed values, will be loaded prior to the multiprocessing call.
+    len_7_vals : np array
+        Precomputed values, will be loaded prior to the multiprocessing call.
+    depth : int
+        minimax depth
+    in_game_itterations : int, optional
+        simulation itterations made in game. The default is 200.
+    training_itterations : int, optional
+        simulation itterations made prior to a game.  
+        Idea is that the Tree can self train before playing the minimax. The default is 1.
+    num_games : int, optional
+        The number of games each tree will play. The default is 25.
+    version_path : string, optional
+        the path to the model. The default is file_path.
+
+    Returns
+    -------
+    list
+        game data
+
+    """
     model = make_eval_function(version_path)
     # root_node = make_new_tree(model = model, add_noise = False)
     depths = []
@@ -851,64 +969,39 @@ def multi_play_mini(as_x,
     return [beat_mini,data_lst]
 
 
-def multi_play_mini_test(as_x,
-                         len_4_vals,
-                         len_5_vals,
-                         len_6_vals,
-                         len_7_vals,
-                         depth,
-                         in_game_itterations = 200,
-                         training_itterations = 2000,
-                         num_games = 25,
-                         version_path = 'C:/Users/matth/python/connectfour/c4netST/V2/c4netST_versions/c4netST_0-0'):
-    model = make_eval_function(version_path)
-    # root_node = make_new_tree(model = model, add_noise = False)
-    row_mult=random.uniform(1,4)
-    col_mult=random.uniform(1,4)
-    diag_mult=random.uniform(1,4)
-    depths = []
-    for n in range(1,depth+1):
-        if n == depth:
-            depths+=[depth]*(depth)
-        elif n==depth-1:
-            depths+=[n]*2
-        else:
-            depths+=[n]
-    data_lst = []
-    beat_mini = 0
-    # simulate(root_node,training_itterations)
-    root_node = make_new_tree(model = model, add_noise = False)
-    for n in range(num_games):
-        result,data = play_mini(root_node,
-                                as_x = as_x,
-                                itterations = in_game_itterations,
-                                print_true = False,
-                                depth = depths[np.random.randint(0,len(depths))],
-                                row_mult = row_mult,
-                                col_mult = col_mult,
-                                diag_mult = diag_mult,
-                                len_4_vals=len_4_vals,
-                                len_5_vals=len_5_vals,
-                                len_6_vals=len_6_vals,
-                                len_7_vals=len_7_vals)
-        data_lst +=data
-        beat_mini+=result
-        for edge in root_node.true_root.edges_visited:
-            edge.reset(reset_dir = False)
-        root_node.true_root.edges_visited = set([])
-    root_node = make_new_tree(model = model, add_noise = False)
-    del root_node
-    del model
-    import tensorflow.keras.backend as K
-    K.clear_session()
-    return [beat_mini,data_lst]
 
 def multi_play_mini_only_result(as_x,
                                 len_n_vals_lst,
                                 mult_lst,
                                 depth = 3,
                                 in_game_itterations = 400,
-                                version_path = 'C:/Users/matth/python/connectfour/c4netST/V2/c4netST_versions/testversion'):
+                                version_path = file_path):
+    """
+    Used for testing the model against a set of minimax algorithms. 
+    Intended to be used with multiprocessing, 
+    the multiprocessing call is in the training pipeline file.
+
+    Parameters
+    ----------
+    as_x : boolean
+        if True, MCTS plays as X
+    len_n_vals_lst : list
+        List of precomputed values, will be loaded prior to the multiprocessing call.
+    mult_lst : list
+        list of multipliers for minimax
+    depth : int, optional
+        . The default is 3.
+    in_game_itterations : int, optional
+        simulation itterations made in game. The default is 400.
+    version_path : string, optional
+        the path to the model. The default is file_path.
+
+    Returns
+    -------
+    beat_mini : int
+        whether or not it beat the minimax.
+
+    """
     len_4_vals = len_n_vals_lst[0]
     len_5_vals = len_n_vals_lst[1]
     len_6_vals = len_n_vals_lst[2]
@@ -952,6 +1045,9 @@ def watch_games_vs_mini(as_x,
                         version_path,
                         watch_full_games = True,
                         print_final_board = False):
+    """
+    Watch a game vs the minimax, to help spot errors.
+    """
     len_4_vals = len_n_vals_lst[0]
     len_5_vals = len_n_vals_lst[1]
     len_6_vals = len_n_vals_lst[2]
@@ -985,6 +1081,9 @@ def two_versions_play(current_version,
                       current_version_as_x, 
                       itterations,
                       print_true=True):
+    """
+    Two versions play each other. For testing and data generation
+    """
     data = []
     turn_count =1
     if current_version_as_x:
@@ -1041,16 +1140,19 @@ def multi_two_versions_play_only_result(current_version_path,
                                         current_version_as_x=True, 
                                         itterations=400,
                                         num_games = 50,
-                                        add_noise = False):
-    test_version_path = 'C:/Users/matth/python/connectfour/c4netST/V2/c4netST_versions/testversion'
+                                        add_noise = False,
+                                        test_version_path = file_path):
+    """
+    two versions play each other, intended to be used with multiprocessing. For testing
+    """
     current_model = make_eval_function(current_version_path)
     test_model = make_eval_function(test_version_path)
-    turn_count =1
+    turn_count = 1
     reset = True
     if current_version_as_x:
-        is_x=1
+        is_x = 1
     else:
-        is_x=0
+        is_x = 0
     test_version_won = 0
     for n in range(num_games):
         if n%25 ==0:
@@ -1061,7 +1163,7 @@ def multi_two_versions_play_only_result(current_version_path,
         while not current_version.is_leaf or not test_version.is_leaf:
             print('current board')
             print(current_version.boardstr)
-            if turn_count%2==is_x:
+            if turn_count%2 == is_x:
                 print('cv turn')
                 simulate(current_version,itterations)
                 pi = current_version.pi
@@ -1140,6 +1242,9 @@ def self_train_many_games(model,
                           training_iterations=500,
                           print_true=True,
                           training_started = None):
+    """
+    multiple trees play multiple games.  For data generation on a single processor.
+    """
     game_data = []
     toc2=tt()
     total_games = 0
@@ -1204,7 +1309,10 @@ def self_train_many_games(model,
 def multi_self_play(in_game_itterations = 200,
                     training_itterations = 2000,
                     games = 25,
-                    version_path = 'C:/Users/matth/python/connectfour/c4netST/V2/c4netST_versions/c4netST_0-0'):
+                    version_path = file_path):
+    """
+    self play with multiprocessing.  For data generation.
+    """
     model = make_eval_function(version_path)
     # simulate(root_node,training_itterations)
     data_lst = []
@@ -1237,198 +1345,28 @@ def multi_self_play(in_game_itterations = 200,
 
 
 
-def make_single_boards(input_boards):
-    boards = input_boards
-    boards = boards[:,:,:,0]+boards[:,:,:,1]
-    boards = np.moveaxis(boards,-1,1)
+# def make_single_boards(input_boards):
+#     boards = input_boards
+#     boards = boards[:,:,:,0]+boards[:,:,:,1]
+#     boards = np.moveaxis(boards,-1,1)
     
-    return(boards)
+#     return(boards)
 
-def make_boards_scores(boards,scores):
-    bs = np.zeros((boards.shape[0],7,7))
-    for n in range(boards.shape[0]):
-        bs[n,0,:] = scores[n]
-        bs[n,1:,:] = boards[n]
+# def make_boards_scores(boards,scores):
+#     bs = np.zeros((boards.shape[0],7,7))
+#     for n in range(boards.shape[0]):
+#         bs[n,0,:] = scores[n]
+#         bs[n,1:,:] = boards[n]
         
-    return(bs)
+#     return(bs)
 
-def make_boards_scores_with_pred(boards,scores,results,pred_scores,pred_results):
-    bsp = np.zeros((boards.shape[0],10,7))
-    for n in range(boards.shape[0]):
-        bsp[n,0,:] = np.array([pred_results[n][0]]*7)
-        bsp[n,1,:] = np.array([results[n]]*7)
-        bsp[n,2,:] = pred_scores[n]
-        bsp[n,3,:] = scores[n]
-        bsp[n,4:,:] = boards[n]
+# def make_boards_scores_with_pred(boards,scores,results,pred_scores,pred_results):
+#     bsp = np.zeros((boards.shape[0],10,7))
+#     for n in range(boards.shape[0]):
+#         bsp[n,0,:] = np.array([pred_results[n][0]]*7)
+#         bsp[n,1,:] = np.array([results[n]]*7)
+#         bsp[n,2,:] = pred_scores[n]
+#         bsp[n,3,:] = scores[n]
+#         bsp[n,4:,:] = boards[n]
         
-    return(bsp)
-
-
-if __name__=='__main__':
-    pass
-    # version_path = 'C:/Users/matth/python/connectfour/c4netST/V2/c4netST_versions/testversion'
-    # model = make_eval_function(version_path)
-    # for n in range(2):
-    #     root_node = make_new_tree(model = model)
-    #     toc =tt()
-    #     itts = 20
-    #     for n in range(itts):
-    #         self_train(root_node,
-    #                    )
-    #     tic = tt()
-    #     print((tic - toc)/itts)
-    # data = multi_play_mini(True,
-    #                     depth = 2,
-    #                     in_game_itterations = 1,
-    #                     training_itterations = 1,
-    #                     num_games = 2,
-    #                     version_path = 'C:/Users/matth/python/connectfour/c4netST/Version 2/c4netST_versions/c4netST_0_0')
-    ##################################
-    ###     Testing Run Times      ###
-    ##################################
-    # model = make_eval_function('C:/Users/matth/python/connectfour/c4netST_versions/c4netST_4-0')
-    # version_path = 'C:/Users/matth/python/connectfour/c4netST/V2/c4netST_versions/c4netST_1-0'
-    # model = make_eval_function(version_path)
-    
-    # itts = 200
-    
-    # time = 0
-    # mm = 0
-    # root_node = make_new_tree(model = model)
-    # sims = 20
-    # for n in range(itts):
-    #     toc = tt()
-    #     mm +=simulate(root_node,
-    #              itterations=sims)
-    #     tic = tt()
-    #     time += tic - toc
-    # print('simulations:',sims)
-    # print('time:',time/itts)
-    # print('Moves made:',mm/itts)
-    
-    
-    
-    # mm=0
-    # time = 0
-    # root_node = make_new_tree(model = model)
-    # sims = 30
-    # for n in range(itts):
-    #     toc = tt()
-    #     mm+=simulate(root_node,
-    #              itterations=sims)
-    #     tic = tt()
-    #     time += tic - toc
-    # print('simulations:',sims)
-    # print('time:',time/itts)
-    # print('Moves made:',mm/itts)
-    
-    
-    # mm=0
-    # time = 0
-    # root_node = make_new_tree(model = model)
-    # sims = 40
-    # for n in range(itts):
-    #     toc = tt()
-    #     mm+=simulate(root_node,
-    #              itterations=sims)
-    #     tic = tt()
-    #     time += tic - toc
-    # print('simulations:',sims)
-    # print('time:',time/itts)
-    # print('Moves made:',mm/itts)
-    
-    
-    
-    # mm=0
-    # time = 0
-    # root_node = make_new_tree(model = model)
-    # sims = 50
-    # for n in range(itts):
-    #     toc = tt()
-    #     mm+=simulate(root_node,
-    #              itterations=sims)
-    #     tic = tt()
-    #     time += tic - toc
-    # print('simulations:',sims)
-    # print('time:',time/itts)
-    # print('Moves made:',mm/itts)
-    
-    # mm=0
-    # time = 0
-    # root_node = make_new_tree(model = model)
-    # sims = 60
-    # for n in range(itts):
-    #     toc = tt()
-    #     mm+=simulate(root_node,
-    #              itterations=sims)
-    #     tic = tt()
-    #     time += tic - toc
-    # print('simulations:',sims)
-    # print('time:',time/itts)
-    # print('Moves made:',mm/itts)
-    
-    
-    
-    # results,data = play_mini(root_node,
-    #           as_x=True,
-    #           itterations=1,
-    #           print_true=True,
-    #           depth=1,
-    #           row_mult=1.5,
-    #           col_mult=1,
-    #           diag_mult=1.5)
-    # game_times = {200:[],
-    #               250:[],
-    #               300:[],
-    #               350:[],
-    #               400:[],
-    #               450:[],
-    #               500:[]}
-    
-    # total_times = {200:0,
-    #                250:0,
-    #                300:0,
-    #                350:0,
-    #                400:0,
-    #                450:0,
-    #                500:0}
-
-    # for key in game_times.keys():
-    #     root_node = make_new_tree(model)
-    #     print('')
-    #     print('#'*50)
-    #     print('')
-    #     print(key,'itteration games:')
-    #     toc = tt()
-    #     x_won = 0 
-    #     o_won = 0 
-    #     draws = 0
-    #     total_games = 0
-    #     for n in range(25):
-    #         toc1 = tt()
-    #         result,data=self_train(model=None,root_node =root_node,itterations=key,print_true = False)
-    #         tic1 = tt()
-    #         total_games +=1
-    #         if result == 1:
-    #             x_won+=1
-    #         elif result ==2:
-    #             o_won+=1
-    #         else:
-    #             draws+=1
-                
-    #         print('Game',n+1,'Time:',round(tic1-toc1,2))
-    #         print('Results:')
-    #         print('X won',x_won,'of',total_games, '({}%)'.format(round(100*x_won/total_games,2)))
-    #         print('O won',o_won,'of',total_games, '({}%)'.format(round(100*o_won/total_games,2)))
-    #         print('Draws in',draws,'of',total_games, '({}%)'.format(round(100*draws/total_games,2)),'\n')
-    #         game_times[key].append(round(tic1-toc1,2))
-    #     tic = tt()
-    #     print('-'*25,'\n')
-    #     print(key,'itteration total time:',round(tic-toc,2))
-    #     total_times[key] = round(tic-toc,2)
-    
-
-    # for key in total_times.keys():
-    #     total_times_lsts[key].append(round(total_times[key],2))
-
-    
+#     return(bsp)

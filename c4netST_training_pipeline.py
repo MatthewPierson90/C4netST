@@ -1,37 +1,34 @@
-# -*- coding: utf-8 -*-
 """
-Created on Sat Aug 14 07:23:41 2021
-
 @author: Matthew
+
+training pipeline functions
 """
 
 import os
 import logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 logging.getLogger('tensorflow').setLevel(50)
-import winsound
+# import winsound
 import numpy as np
-
-from mcts_with_c4net_current import open_data,save_data,play_mini ,simulate,make_new_tree
-from mcts_with_c4net_current import make_eval_function,self_train_many_games,two_versions_play
-from mcts_with_c4net_current import multi_self_play, multi_play_mini, watch_games_vs_mini
-from mcts_with_c4net_current import multi_play_mini_only_result, multi_two_versions_play_only_result
+import pathlib
+file_path = str(pathlib.Path(__file__).parent.resolve())+'\\'
+from mcts_with_c4net import open_data,save_data,play_mini ,simulate,make_new_tree
+from mcts_with_c4net import make_eval_function,self_train_many_games,two_versions_play
+from mcts_with_c4net import multi_self_play, multi_play_mini, watch_games_vs_mini
+from mcts_with_c4net import multi_play_mini_only_result, multi_two_versions_play_only_result
 from CNNdata import mcts_data,shuffle_mcts_data
 # from tensorflow.keras.models import load_model
-from Using_numba_current import make_n_array
 import random
 import time
 from datetime import datetime
 from multiprocessing import Pool
 print(datetime.now())
 tt=time.time
-file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
 
 
-
-
-def clear_numba():
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
+def clear_numba(file_path = file_path):
+    """Cached numba functions freak out over the slieghtest change.  
+    This function deletes them."""
     lst = os.listdir(file_path+'__pycache__')
     for file in lst:
         if 'Using_numba' in file:
@@ -39,13 +36,9 @@ def clear_numba():
             os.remove(path)
 
 
-
-
-# c4netST_training_pipeline()
-
-def get_versions():
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
-    from mcts_with_c4net_current import open_data
+def get_versions(file_path = file_path):
+    """Gives you info on the current version and all of the previous versions"""
+    from mcts_with_c4net import open_data
     current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
     versions = open_data(file_path+'c4netST_versions/versions.pkl')
     return(current_version,versions)
@@ -66,14 +59,17 @@ def c4netST_training_pipeline(training_loops=1,
                               use_multi_test = True,
                               num_proc_multi_self = 8,
                               current_version = None,#change this for testing only!
-                              num_test_games = 100): #change this for testing only!
+                              num_test_games = 100,#change this for testing only!
+                              file_path = file_path): 
+    """Generates data, creates and fits a new model after a specified number of games,
+    tests the new model vs the old model and vs minimax.
+    Uses the new model to generate data if it preformed well enough. Does the loop again"""
     time = datetime.now()
     training_started = time.strftime("%H:%M:%S")
     self_time = 0
     training_time = 0
     testing_time = 0
     update_time = 0
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
     print('Training started at', training_started)
     if training_loops == 1:
         print('Training for',training_loops,'loop!')
@@ -108,7 +104,7 @@ def c4netST_training_pipeline(training_loops=1,
         times_through = 0
         vs_mini_percent = 0
         vs_current_percent = 0
-        while vs_mini_percent <60 and vs_current_percent <55 and times_through<2:
+        while vs_mini_percent <85 and vs_current_percent <55 and times_through<2:
             print('Times Through:',times_through)
             gameboards_trained_on = make_and_fit_transfer_model(epochs = epochs, 
                                                                 batch_size = batch_size)
@@ -116,7 +112,6 @@ def c4netST_training_pipeline(training_loops=1,
             training_time += training_tic-training_toc
             if use_multi_test:
                 testing_toc = tt()
-                # vs_mini_percent, vs_current_percent, results_lst= multi_test(in_game_itterations = in_game_itterations_vs_self)
                 vs_mini_percent, results_lst_mini=multi_testnet_vs_mini(in_game_itterations = in_game_itterations_vs_self)
                 print('Percent won vs mini:',vs_mini_percent)
                 print('Mini Results lst (32 games each):',results_lst_mini)
@@ -168,8 +163,9 @@ def make_self_data(num_self_games_per_tree=10,
                    training_itterations=2000,
                    print_true = True,
                    training_started = None,
-                   current_version = None):
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
+                   current_version = None,
+                   file_path = file_path):
+    """Generates data by having the mcts play itself. For a single processor"""
     if current_version == None:
         current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
     version_path = file_path+'c4netST_versions/'+current_version['name']
@@ -195,8 +191,9 @@ def multi_make_self_data(num_self_games_per_tree=25,
                          training_itterations=2000,
                          training_started = None,
                          current_version = None,
-                         num_proc = 8):
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
+                         num_proc = 8,
+                         file_path = file_path):
+    """Generates data by having the mcts play itself. For multiprocessing"""
     if current_version == None:
         current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
     version_path = file_path+'c4netST_versions/'+current_version['name']
@@ -227,17 +224,7 @@ def multi_make_self_data(num_self_games_per_tree=25,
     data_name_self = file_path+'c4netST_data/{}_{}_{}.pkl'.format('self','play',data_version)
     save_data(data_self,data_name_self)
 
-# if __name__ == '__main__':
-#     toc = tt()
-#     multi_make_self_data(num_self_games_per_tree=5,
-#                           num_trees=8,
-#                           in_game_itterations=1000,
-#                           training_itterations=1,
-#                           training_started = None,
-#                           current_version = None,
-#                           num_proc = 8)
-#     tic = tt()
-#     print('self data, 200 games time:',tic-toc)
+
 
 def multi_make_mini_data(mini_games_per_root = 50,
                          num_roots = 20,
@@ -245,7 +232,10 @@ def multi_make_mini_data(mini_games_per_root = 50,
                          training_itterations = 2000,
                          training_started = None,
                          current_version = None,
-                         num_proc = 8):
+                         num_proc = 8,
+                         file_path = file_path):
+    """Generates data by having the mcts play a set of minimax algorithms. For multiprocessing.
+    Not used in this pipeline"""
     file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
     clear_numba()
     if current_version == None:
@@ -295,25 +285,16 @@ def multi_make_mini_data(mini_games_per_root = 50,
     print(beat_mini)
     return beat_mini
 
-# if __name__=='__main__':
-#     toc = tt()
-#     beat_mini1 = multi_make_mini_data(mini_games_per_root = 25,
-#                                       num_roots = 8,
-#                                       in_game_itterations = 1000,
-#                                       training_itterations = 1,
-#                                       training_started = None,
-#                                       current_version = None,
-#                                       num_proc = 8)
-#     tic = tt()
-#     print('mini data, 200 games time:',tic-toc)
 
 def make_mini_data(mini_games=1000,
                    in_game_itterations=200,
                    training_itterations=2000,
                    print_true =True,
                    training_started = None,
-                   current_version = None):
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
+                   current_version = None,
+                   file_path = file_path):
+    """Generates data by having the mcts play a set of minimax algorithms. For a single processor.
+    Not used in this pipeline"""
     clear_numba()
     print('Beginning Mini Training Loop \n')
     as_x=False
@@ -462,8 +443,9 @@ def get_win_percent_testnet_vs_mini(training_itterations = 1,
                                     num_games = 100,
                                     print_true = True,
                                     depth = None,
-                                    test_version_path = None):
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
+                                    test_version_path = None,
+                                    file_path = file_path):
+    """For testing the test version vs minimax. Single processor"""
     clear_numba()
     average_game_time = 0
     as_x = True
@@ -585,8 +567,9 @@ def get_win_percent_testnet_vs_mini(training_itterations = 1,
 
 def get_win_percent_vs_current_version(version_path=None,
                                        itterations=400,
-                                       num_games = 100):
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
+                                       num_games = 100,
+                                       file_path = file_path):
+    """For testing the test version vs current version. Single processor"""
     as_x = True
     test_version_won=0
     if version_path == None:
@@ -631,11 +614,138 @@ def get_win_percent_vs_current_version(version_path=None,
     K.clear_session()
     return(percent)
 
+
+
+def multi_testnet_vs_mini(in_game_itterations = 400,
+                          num_proc = 8,
+                          current_version = None,
+                          depth = None,
+                          test_version = 'testversion',
+                          file_path = file_path):
+    """For testing the test version vs minimax. For multiprocessing"""
+    clear_numba()
+    len_4_vals = open_data(file_path+'array_n_values/len_4_values.pkl')
+    len_5_vals = open_data(file_path+'array_n_values/len_5_values.pkl')
+    len_6_vals = open_data(file_path+'array_n_values/len_6_values.pkl')
+    len_7_vals = open_data(file_path+'array_n_values/len_7_values.pkl')
+    if current_version == None:
+        current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
+    if depth == None:
+        depth = current_version['minimax_level_beat']+1
+    test_version_path = file_path+'c4netST_versions/'+test_version
+    len_n_vals_lst = [len_4_vals,len_5_vals,len_6_vals,len_7_vals]
+    vals = [1,2,3,4]
+    vals2 = [1.4,2.1,2.8,3.5]
+    mults1 = [(w,x,y) for w in vals for x in vals for y in vals if w in [1,2]]
+    mults2 = [(w,x,y) for w in vals for x in vals for y in vals if w in [3,4]]
+    mults3 = [(w,x,y) for w in vals2 for x in vals2 for y in vals2 if w in [1.4,2.1]]
+    mults4 = [(w,x,y) for w in vals2 for x in vals2 for y in vals2 if w in [2.8,3.5]]
+    inputs = [[True, len_n_vals_lst, mults1,depth,in_game_itterations,test_version_path],
+              [True, len_n_vals_lst, mults2,depth,in_game_itterations,test_version_path],
+              [True, len_n_vals_lst, mults3,depth,in_game_itterations,test_version_path],
+              [True, len_n_vals_lst, mults4,depth,in_game_itterations,test_version_path],
+              [False, len_n_vals_lst, mults1,depth,in_game_itterations,test_version_path],
+              [False, len_n_vals_lst, mults2,depth,in_game_itterations,test_version_path],
+              [False, len_n_vals_lst, mults3,depth,in_game_itterations,test_version_path],
+              [False, len_n_vals_lst, mults4,depth,in_game_itterations,test_version_path]]
+    with Pool(num_proc) as p:
+        results_lst = p.starmap(multi_play_mini_only_result,inputs)
+    win_percent = round(100*sum(results_lst)/256,2)
+    return(win_percent,results_lst)
+
+
+def multi_testnet_vs_current(in_game_itterations = 400,
+                             current_version_path = None,
+                             file_path = file_path):
+    """For testing the test version vs the current version. For multiprocessing"""
+    if current_version_path == None:
+        current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
+        version_path = file_path+'c4netST_versions/'+current_version['name']
+    else:
+        version_path = current_version_path
+    inputs = [[version_path, True, in_game_itterations, 25, True],
+              [version_path, True, in_game_itterations, 25, True],
+              [version_path, True, in_game_itterations, 25, True],
+              [version_path, True, in_game_itterations, 25, True],
+              [version_path, False, in_game_itterations, 25, True],
+              [version_path, False, in_game_itterations, 25, True],
+              [version_path, False, in_game_itterations, 25, True],
+              [version_path, False, in_game_itterations, 25, True]]
+    with Pool(8) as p:
+        results_lst = p.starmap(multi_two_versions_play_only_result,inputs)
+    win_percent = sum(results_lst)/2
+    return(win_percent,results_lst)
+
+
+
+def vs_mini_or_self(vs_mini,
+                    as_x,
+                    len_n_vals_lst,
+                    mult_lst,
+                    depth,
+                    in_game_itterations = 400,
+                    version_path = file_path+'c4netST_versions/testversion',
+                    add_noise = False):
+    """For testing the test version vs the current version and minimax at the same time. For multiprocessing"""
+    if vs_mini:
+        num_won = multi_play_mini_only_result(as_x,
+                                              len_n_vals_lst,
+                                              mult_lst,
+                                              depth,
+                                              in_game_itterations,
+                                              version_path)
+    else:
+        num_won = multi_two_versions_play_only_result(current_version_path = version_path,
+                                                      current_version_as_x = as_x, 
+                                                      itterations = in_game_itterations,
+                                                      num_games = 25,
+                                                      add_noise = add_noise)
+    return num_won
+
+def multi_test(in_game_itterations = 400,
+               version_path = None,
+               depth = None,
+               file_path = file_path):
+    """For testing the test version vs the current version and minimax at the same time. For multiprocessing"""
+    clear_numba()
+    test_version_path = file_path+'c4netST_versions/testversion'
+    len_4_vals = open_data('array_n_values/len_4_values.pkl')
+    len_5_vals = open_data('array_n_values/len_5_values.pkl')
+    len_6_vals = open_data('array_n_values/len_6_values.pkl')
+    len_7_vals = open_data('array_n_values/len_7_values.pkl')
+    current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
+    current_version_path = file_path+'c4netST_versions/'+current_version['name']
+    depth = current_version['minimax_level_beat']+1
+    print('\nBeginning Tests')
+    print('current version:',current_version['name'])
+    print('Testing depth:',depth)
+    len_n_vals_lst = [len_4_vals,len_5_vals,len_6_vals,len_7_vals]
+    vals = [1,2,3,4]
+    mults1 = [(w,x,y) for w in vals for x in vals for y in vals if w in [1,2]]
+    mults2 = [(w,x,y) for w in vals for x in vals for y in vals if w in [3,4]]
+    #       vs_mini, as_x, list_n_vals, mult_lsts,depth,in_game_itterations, current_version_path
+    inputs = [[True, True, len_n_vals_lst, mults1, depth, in_game_itterations, test_version_path, False],
+              [True, True, len_n_vals_lst, mults2, depth, in_game_itterations, test_version_path, False],
+              [True, False, len_n_vals_lst, mults1, depth, in_game_itterations, test_version_path, False],
+              [True, False, len_n_vals_lst, mults2, depth, in_game_itterations, test_version_path, False],
+              [False, True, None, None, None, in_game_itterations, current_version_path, False],
+              [False, False, None, None, None, in_game_itterations, current_version_path, False],
+              [False, True, None, None, None, in_game_itterations, current_version_path, False],
+              [False, False, None, None, None, in_game_itterations, current_version_path, False]]
+    with Pool(8) as p:
+        results_lst = p.starmap(vs_mini_or_self,inputs)
+    win_percent_vs_mini = round(100*sum(results_lst[:4])/128,2)
+    win_percent_vs_current = sum(results_lst[4:])
+    return(win_percent_vs_mini, win_percent_vs_current, results_lst)
+
 def watch_games_vs_mini_multi_depths(version_path,
                                      min_depth,
                                      max_depth,
                                      in_game_itterations,
-                                     only_final_board = True):
+                                     only_final_board = True,
+                                     file_path = file_path):
+    """For watching games between a specified version and a set of minimax algs.  
+    To check that everything is working correctly"""
     clear_numba()
     len_4_vals = open_data(file_path+'array_n_values/len_4_values.pkl')
     len_5_vals = open_data(file_path+'array_n_values/len_5_values.pkl')
@@ -737,149 +847,11 @@ def watch_games_vs_mini_multi_depths(version_path,
     return(depth_results)
 # multi_play_mini_only_result, multi_two_versions_play_only_result
 
-def multi_testnet_vs_mini(in_game_itterations = 400,
-                          num_proc = 8,
-                          current_version = None,
-                          depth = None):
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
-    clear_numba()
-    len_4_vals = open_data(file_path+'array_n_values/len_4_values.pkl')
-    len_5_vals = open_data(file_path+'array_n_values/len_5_values.pkl')
-    len_6_vals = open_data(file_path+'array_n_values/len_6_values.pkl')
-    len_7_vals = open_data(file_path+'array_n_values/len_7_values.pkl')
-    if current_version == None:
-        current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
-    if depth == None:
-        depth = current_version['minimax_level_beat']+1
-    test_version_path = file_path+'c4netST_versions/testversion'
-    len_n_vals_lst = [len_4_vals,len_5_vals,len_6_vals,len_7_vals]
-    vals = [1,2,3,4]
-    vals2 = [1.4,2.1,2.8,3.5]
-    mults1 = [(w,x,y) for w in vals for x in vals for y in vals if w in [1,2]]
-    mults2 = [(w,x,y) for w in vals for x in vals for y in vals if w in [3,4]]
-    mults3 = [(w,x,y) for w in vals2 for x in vals2 for y in vals2 if w in [1.4,2.1]]
-    mults4 = [(w,x,y) for w in vals2 for x in vals2 for y in vals2 if w in [2.8,3.5]]
-    inputs = [[True, len_n_vals_lst, mults1,depth,in_game_itterations,test_version_path],
-              [True, len_n_vals_lst, mults2,depth,in_game_itterations,test_version_path],
-              [True, len_n_vals_lst, mults3,depth,in_game_itterations,test_version_path],
-              [True, len_n_vals_lst, mults4,depth,in_game_itterations,test_version_path],
-              [False, len_n_vals_lst, mults1,depth,in_game_itterations,test_version_path],
-              [False, len_n_vals_lst, mults2,depth,in_game_itterations,test_version_path],
-              [False, len_n_vals_lst, mults3,depth,in_game_itterations,test_version_path],
-              [False, len_n_vals_lst, mults4,depth,in_game_itterations,test_version_path]]
-    with Pool(num_proc) as p:
-        results_lst = p.starmap(multi_play_mini_only_result,inputs)
-    win_percent = round(100*sum(results_lst)/256,2)
-    return(win_percent,results_lst)
-
-# if __name__ == '__main__':
-#     tic = tt()
-#     win_percent,results_lst=multi_testnet_vs_mini(in_game_itterations = 1000,
-#                           num_proc = 8)
-#     toc = tt()
-#     print('test vs mini time:',toc - tic)
-#     print(win_percent)
-#     print(results_lst)
-
-def multi_testnet_vs_current(in_game_itterations = 400,
-                             current_version_path = None):
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
-    if current_version_path == None:
-        current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
-        version_path = file_path+'c4netST_versions/'+current_version['name']
-    else:
-        version_path = current_version_path
-    inputs = [[version_path, True, in_game_itterations, 25, True],
-              [version_path, True, in_game_itterations, 25, True],
-              [version_path, True, in_game_itterations, 25, True],
-              [version_path, True, in_game_itterations, 25, True],
-              [version_path, False, in_game_itterations, 25, True],
-              [version_path, False, in_game_itterations, 25, True],
-              [version_path, False, in_game_itterations, 25, True],
-              [version_path, False, in_game_itterations, 25, True]]
-    with Pool(8) as p:
-        results_lst = p.starmap(multi_two_versions_play_only_result,inputs)
-    win_percent = sum(results_lst)/2
-    return(win_percent,results_lst)
-
-# if __name__ == '__main__':
-#     tic = tt()
-#     win_percent,results_lst=multi_testnet_vs_current(in_game_itterations = 1000)
-#     toc = tt()
-#     print('test vs current time:',toc - tic)
-#     print(win_percent)
-#     print(results_lst)
-
-def vs_mini_or_self(vs_mini,
-                    as_x,
-                    len_n_vals_lst,
-                    mult_lst,
-                    depth,
-                    in_game_itterations = 400,
-                    version_path = 'C:/Users/matth/python/connectfour/c4netST/Version 3/c4netST_versions/testversion',
-                    add_noise = False):
-    if vs_mini:
-        num_won = multi_play_mini_only_result(as_x,
-                                              len_n_vals_lst,
-                                              mult_lst,
-                                              depth,
-                                              in_game_itterations,
-                                              version_path)
-    else:
-        num_won = multi_two_versions_play_only_result(current_version_path = version_path,
-                                                      current_version_as_x = as_x, 
-                                                      itterations = in_game_itterations,
-                                                      num_games = 25,
-                                                      add_noise = add_noise)
-    return num_won
-
-def multi_test(in_game_itterations = 400,
-               version_path = None,
-               depth = None):
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
-    clear_numba()
-    test_version_path = file_path+'c4netST_versions/testversion'
-    len_4_vals = open_data('array_n_values/len_4_values.pkl')
-    len_5_vals = open_data('array_n_values/len_5_values.pkl')
-    len_6_vals = open_data('array_n_values/len_6_values.pkl')
-    len_7_vals = open_data('array_n_values/len_7_values.pkl')
-    current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
-    current_version_path = file_path+'c4netST_versions/'+current_version['name']
-    depth = current_version['minimax_level_beat']+1
-    print('\nBeginning Tests')
-    print('current version:',current_version['name'])
-    print('Testing depth:',depth)
-    len_n_vals_lst = [len_4_vals,len_5_vals,len_6_vals,len_7_vals]
-    vals = [1,2,3,4]
-    mults1 = [(w,x,y) for w in vals for x in vals for y in vals if w in [1,2]]
-    mults2 = [(w,x,y) for w in vals for x in vals for y in vals if w in [3,4]]
-    #       vs_mini, as_x, list_n_vals, mult_lsts,depth,in_game_itterations, current_version_path
-    inputs = [[True, True, len_n_vals_lst, mults1, depth, in_game_itterations, test_version_path, False],
-              [True, True, len_n_vals_lst, mults2, depth, in_game_itterations, test_version_path, False],
-              [True, False, len_n_vals_lst, mults1, depth, in_game_itterations, test_version_path, False],
-              [True, False, len_n_vals_lst, mults2, depth, in_game_itterations, test_version_path, False],
-              [False, True, None, None, None, in_game_itterations, current_version_path, False],
-              [False, False, None, None, None, in_game_itterations, current_version_path, False],
-              [False, True, None, None, None, in_game_itterations, current_version_path, False],
-              [False, False, None, None, None, in_game_itterations, current_version_path, False]]
-    with Pool(8) as p:
-        results_lst = p.starmap(vs_mini_or_self,inputs)
-    win_percent_vs_mini = round(100*sum(results_lst[:4])/128,2)
-    win_percent_vs_current = sum(results_lst[4:])
-    return(win_percent_vs_mini, win_percent_vs_current, results_lst)
-
-# if __name__ == '__main__':
-#     toc = tt()
-#     win_percent_vs_mini, win_percent_vs_current, results_lst = multi_test(in_game_itterations = 50,
-#                                                                           current_version_path ='C:/Users/matth/python/connectfour/c4netST/Version 3/c4netST_versions/c4netST_0-0',
-#                                                                           depth = 3)
-#     tic = tt()
-#     print(tic-toc)
-#     print(win_percent_vs_mini,'\n', win_percent_vs_current,'\n', results_lst)
-
 def run_many_depth_tests(min_depth = 1, 
                          max_depth =5,
                          test_version_path = None):
+    """For watching games between a specified version and a set of minimax algs.  
+    To check that everything is working correctly"""
     results = []
     for n in range(min_depth,max_depth+1):
         result = get_win_percent_testnet_vs_mini(training_itterations = 1,
@@ -898,9 +870,10 @@ def run_many_depth_tests(min_depth = 1,
 
 def make_and_fit_new_model(batch_size=10,
                            epochs=5,
-                           current_version = None):
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
-    from Using_Keras_current import fit_model,make_model
+                           current_version = None,
+                           file_path = file_path):
+    """Makes and fits a new model to the data"""
+    from make_keras_models import fit_model,make_model
     if current_version == None:
         current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
     data_version = '{}_{}_{}'.format(current_version['minimax_level_beat'],
@@ -941,9 +914,10 @@ def make_and_fit_new_model(batch_size=10,
 
 def make_and_fit_transfer_model(batch_size=1024,
                                 epochs=30,
-                                version = None):
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
-    from Using_Keras_v2 import fit_model,transfer_model
+                                version = None,
+                                file_path = file_path):
+    """Makes and fits a transfer model to the data"""
+    from make_keras_models import fit_model,transfer_model
     c4netST = transfer_model(file_path+'/c4netST_versions/testversion')
     if version == None:
         current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
@@ -980,20 +954,80 @@ def make_and_fit_transfer_model(batch_size=1024,
     import tensorflow.keras.backend as K
     K.clear_session()
 
+def make_and_fit_new_model_specific_data(batch_size=1024,
+                                         epochs=30,
+                                         data_level = 'level_0_data.pkl',
+                                         test_version = 'testversion',
+                                         file_path = file_path):
+    """Makes and fits a new model to a specific set of data,
+    for testing different models on premade data"""
+    data_path = file_path+'c4netST_data/'+data_level
+    test_version_path = file_path+'c4netST_versions/'+test_version
+    from make_keras_models import fit_model,make_model_3
+    c4netST = make_model_3()
+    recent_data = open_data(data_path)
+    boards,scores,results = shuffle_mcts_data(recent_data)
+    train_x = boards
+    train_y_results =  results
+    train_y_scores =  scores
+    train_y = [train_y_scores,train_y_results]
+    history = fit_model(model=c4netST,
+                        train_x = train_x,
+                        train_y=train_y,
+                        batch_size=batch_size,
+                        epochs=epochs,
+                        validation_percent=.05)
+    print_last_epoch_history(history)
+    c4netST.save(test_version_path)
+    gameboards_trained_on = len(train_x)
+    del c4netST
+    import tensorflow.keras.backend as K
+    K.clear_session()
+    return(gameboards_trained_on)
 
+
+
+def make_and_fit_transfer_model_specific_data(batch_size=1024,
+                                              epochs=30,
+                                              data_level = 'level_1_data.pkl',
+                                              test_version = 'testversion',
+                                              file_path = file_path):
+    """Makes and fits a transfer model to a specific set of data,
+    for testing different models on premade data"""
+    # data_path = file_path+'c4netST_data/'+data_level
+    test_version_path = file_path+'c4netST_versions/'+test_version
+    from make_keras_models import fit_model,transfer_model_3
+    c4netST = transfer_model_3(test_version_path)
+    recent_data = open_data(file_path+'c4netST_data/recent_data.pkl')
+    boards,scores,results = shuffle_mcts_data(recent_data)
+    train_x = boards
+    train_y_results =  results
+    train_y_scores =  scores
+    train_y = [train_y_scores,train_y_results]
+    history = fit_model(model=c4netST,
+                        train_x = train_x,
+                        train_y=train_y,
+                        batch_size=batch_size,
+                        epochs=epochs,
+                        validation_percent=.05)
+    c4netST.save(test_version_path)
+    print_last_epoch_history(history)
+    import tensorflow.keras.backend as K
+    K.clear_session()
 
 
 def update_version_and_data(vs_current_percent,
                             vs_mini_percent,
                             gameboards_trained_on=300000,
                             results_lst_mini = [],
-                            results_lst_current=[]):
+                            results_lst_current=[],
+                            file_path = file_path):
+    """Saves everything, and updates file location based on test results"""
     from tensorflow.keras.models import load_model
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
     versions = open_data(file_path+'c4netST_versions/versions.pkl')
     current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
     version_path = file_path+'c4netST_versions/'+current_version['name']
-    if vs_mini_percent >=60:
+    if vs_mini_percent >=80:
         c4netST = load_model(file_path+'c4netST_versions/testversion')
         current_version['results_lst_vs_mini'] = results_lst_mini
         current_version['results_lst_vs_current'] = results_lst_current
@@ -1038,6 +1072,7 @@ def update_version_and_data(vs_current_percent,
     K.clear_session()
 
 def print_last_epoch_history(history):
+    """prints the info from the final training epoch"""
     history_dict = history.history
     keys = ['loss',
             'score_output_loss', 
@@ -1054,8 +1089,9 @@ def print_last_epoch_history(history):
     print('-'*50,'\n')
 
 def make_recent_data(minimax_level_beat=None,
-                      versions = None):
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
+                      versions = None,
+                      file_path = file_path):
+    """puts all of the recently generated data as one file"""
     if minimax_level_beat == None:
         current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
         minimax_level_beat = current_version['minimax_level_beat']
@@ -1083,8 +1119,9 @@ def make_recent_data(minimax_level_beat=None,
 
 
 def make_level_data(level,
-                      versions = None):
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
+                    versions = None,
+                    file_path = file_path):
+    """puts all of the recently generated data as one file for a specific minimax level beat"""
     if versions == None:
         versions = open_data(file_path+'c4netST_versions/versions.pkl')
     num_added = 0
@@ -1108,6 +1145,7 @@ def make_level_data(level,
     save_data(data,file_path+'c4netST_data/'+file_name)
 
 def reflect_and_concat_data(mcts_data):
+    """the board is symmetric, so we can double our data by reflection"""
     reflected_data = [np.flip(mcts_data[0],axis=1),np.flip(mcts_data[1],axis=1),mcts_data[2]]
     data = [np.concatenate((mcts_data[0],reflected_data[0])),
             np.concatenate((mcts_data[1],reflected_data[1])),
@@ -1115,18 +1153,11 @@ def reflect_and_concat_data(mcts_data):
     return(data)
 
 
-
-
-
-
-
-
-
-
-
-
-def make_initial_everything():
-    from Using_numba_current import new_board
+def make_initial_everything(file_path = file_path):
+    """initializes everything for a new model to be trained.  
+    You should move all of the old data before you run this, 
+    if you wish to keep the old data."""
+    from minimax_functions import new_board
     initial_version = {'name':'c4netST_0-0',
                         'minimax_level_beat':0,
                         'mini_level_version':0,
@@ -1136,7 +1167,6 @@ def make_initial_everything():
                         'win_percent_vs_current':0,
                         'win_percent_vs_previous':0}
     from Using_Keras_current import fit_model,make_model
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
     versions = [initial_version]
     save_data(initial_version,file_path+'c4netST_versions/current_version.pkl')
     save_data(versions,file_path+'c4netST_versions/versions.pkl')
