@@ -14,7 +14,10 @@ I have been running the data generation and testing games in parallel on a CPU, 
 Package versions I have been using:
 
 numba 0.53.1
+
 numpy 1.20.3
+
 python 3.9.6
+
 tensorflow 2.5.0
 
