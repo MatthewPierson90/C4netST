@@ -236,7 +236,6 @@ def multi_make_mini_data(mini_games_per_root = 50,
                          file_path = file_path):
     """Generates data by having the mcts play a set of minimax algorithms. For multiprocessing.
     Not used in this pipeline"""
-    file_path = 'C:/Users/matth/python/connectfour/c4netST/V2/'
     clear_numba()
     if current_version == None:
         current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
@@ -864,7 +863,6 @@ def run_many_depth_tests(min_depth = 1,
     return results
 
 
-# run_many_depth_tests(1,5,'C:/Users/matth/python/connectfour/c4netST_versions/c4netST_5-0')
 
 
 
