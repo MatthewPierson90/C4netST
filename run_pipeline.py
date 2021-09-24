@@ -8,8 +8,8 @@ from c4netST_training_pipeline import c4netST_training_pipeline
 
 if __name__=='__main__':
     c4netST_training_pipeline(training_loops = 1,
-                              in_game_itterations_vs_self = 1000,
-                              training_itterations = 1,
+                              in_game_iterations_vs_self = 1000,
+                              training_iterations = 1,
                               num_self_games_per_tree = 10,
                               num_trees = 6,
                               batch_size = 1024,

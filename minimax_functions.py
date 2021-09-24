@@ -31,7 +31,7 @@ def available_moves(board):
     """
     Determines all available moves given a game board.
     Input: a game board
-    Output: an np.array with a 1 in the ith position if i is an avbailable move.
+    Output: an np.array with a 1 in the ith position if i is an available move.
     i = 0 corresponds to column 1. 
     """
     moves = np.zeros(7)
@@ -359,7 +359,7 @@ def my_product(n):
 @njit(nogil=True) 
 def make_n_array(n,three_mult=1.5):
     """
-    Creates an array whose first row uniquely identifys 
+    Creates an array whose first row uniquely identifies 
     a list of length n with values 0,1,2 with a number using lst_to_num,
     and whose second row provides a score for that list.
     This will be used to pre compute scores for rows, columns, and diagonals
@@ -460,7 +460,7 @@ def num_board_to_score(lst,
 def board_to_num(board):
     """
     Turns the board into a 4 by 7 array with each entry
-     uniquly identifying a row, column, or diagonal.
+     uniquely identifying a row, column, or diagonal.
     """
     r7 = range(7)
     r6 = range(6)
@@ -535,9 +535,9 @@ def minimax(board,  #game board
             is_max, # True for player 1/X, False for player 2/O
             depth, #how many moves the algorithm will look ahead, changes as algorithm looks ahead
             start_depth, #the original number of moves the algorithm will look ahead, stays constant
-            row_mult, #how much the algorithm priorotizes rows
-            col_mult, #how much the algorithm priorotizes columns
-            diag_mult, #how much the algorithm priorotizes diagonals
+            row_mult, #how much the algorithm prioritizes rows
+            col_mult, #how much the algorithm prioritizes columns
+            diag_mult, #how much the algorithm prioritizes diagonals
             prune, #set to True for alpha beta pruning
             alpha, #alpha for alpha beta pruning
             beta, #beta for alpha beta pruning
@@ -801,7 +801,7 @@ def two_ai_game(eval_lst,
                 len_6_vals,
                 len_7_vals):
     """
-    Two minimax play eachother, returns a list of game boards and the score that the X-player gave to each board.
+    Two minimax play each other, returns a list of game boards and the score that the X-player gave to each board.
     """
     game_board = new_board()
     xrow_mult=eval_lst[0]

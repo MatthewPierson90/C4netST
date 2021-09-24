@@ -48,8 +48,8 @@ def get_versions(file_path = file_path):
 
 
 def c4netST_training_pipeline(training_loops=1,
-                              in_game_itterations_vs_self = 1000,
-                              training_itterations=1,
+                              in_game_iterations_vs_self = 1000,
+                              training_iterations=1,
                               num_self_games_per_tree=250,
                               num_trees=16,
                               batch_size = 1024,
@@ -83,8 +83,8 @@ def c4netST_training_pipeline(training_loops=1,
             self_toc = tt()
             multi_make_self_data(num_self_games_per_tree=num_self_games_per_tree,
                                  num_trees=num_trees,
-                                 in_game_itterations = in_game_itterations_vs_self,
-                                 training_itterations = training_itterations,
+                                 in_game_iterations = in_game_iterations_vs_self,
+                                 training_iterations = training_iterations,
                                  training_started = training_started,
                                  current_version = current_version,
                                  num_proc = num_proc_multi_self) #8 just barely maxes out memory doing 400 simulations per move 25 games per tree, may have issues with 40 games per tre
@@ -93,8 +93,8 @@ def c4netST_training_pipeline(training_loops=1,
             self_toc = tt()
             make_self_data(num_self_games_per_tree=num_self_games_per_tree,
                            num_trees=num_trees,
-                           in_game_itterations=in_game_itterations_vs_self,
-                           training_itterations=training_itterations,
+                           in_game_iterations=in_game_iterations_vs_self,
+                           training_iterations=training_iterations,
                            print_true = print_true,
                            training_started = training_started,
                            current_version = current_version)
@@ -112,24 +112,24 @@ def c4netST_training_pipeline(training_loops=1,
             training_time += training_tic-training_toc
             if use_multi_test:
                 testing_toc = tt()
-                vs_mini_percent, results_lst_mini=multi_testnet_vs_mini(in_game_itterations = in_game_itterations_vs_self)
+                vs_mini_percent, results_lst_mini=multi_testnet_vs_mini(in_game_iterations = in_game_iterations_vs_self)
                 print('Percent won vs mini:',vs_mini_percent)
                 print('Mini Results lst (32 games each):',results_lst_mini)
                 print('Percent won as X:',round(100*sum(results_lst_mini[:4])/128,2))
                 print('Percent won as O:',round(100*sum(results_lst_mini[4:])/128,2))
-                vs_current_percent, results_lst_current = multi_testnet_vs_current(in_game_itterations = in_game_itterations_vs_self)
+                vs_current_percent, results_lst_current = multi_testnet_vs_current(in_game_iterations = in_game_iterations_vs_self)
                 print('Percent won vs current:',vs_current_percent)
                 print('Results vs current version (25 games each):',results_lst_current)
                 print('Percent won as X:',sum(results_lst_current[:4]))
                 print('Percent won as O:',sum(results_lst_current[4:]))
             else:
                 testing_toc = tt()
-                vs_mini_percent = get_win_percent_testnet_vs_mini(training_itterations = training_itterations,
-                                                                      in_game_itterations = in_game_itterations_vs_self,
+                vs_mini_percent = get_win_percent_testnet_vs_mini(training_iterations = training_iterations,
+                                                                      in_game_iterations = in_game_iterations_vs_self,
                                                                       num_games = num_test_games,
                                                                       print_true = print_true)
                 
-                vs_current_percent = get_win_percent_vs_current_version(itterations=in_game_itterations_vs_self)
+                vs_current_percent = get_win_percent_vs_current_version(iterations=in_game_iterations_vs_self)
             testing_tic = tt()
             testing_time += testing_tic-testing_toc
             times_through+=1
@@ -159,8 +159,8 @@ def c4netST_training_pipeline(training_loops=1,
 
 def make_self_data(num_self_games_per_tree=10,
                    num_trees=50,
-                   in_game_itterations=200,
-                   training_itterations=2000,
+                   in_game_iterations=200,
+                   training_iterations=2000,
                    print_true = True,
                    training_started = None,
                    current_version = None,
@@ -175,8 +175,8 @@ def make_self_data(num_self_games_per_tree=10,
     data_self=self_train_many_games(model,
                                     games= num_self_games_per_tree,
                                     trees =num_trees,
-                                    in_game_itterations=in_game_itterations,
-                                    training_iterations=training_itterations,
+                                    in_game_iterations=in_game_iterations,
+                                    training_iterations=training_iterations,
                                     training_started = training_started)
     data_version = '{}_{}_{}'.format(current_version['minimax_level_beat'],
                                      current_version['mini_level_version'],
@@ -187,8 +187,8 @@ def make_self_data(num_self_games_per_tree=10,
 
 def multi_make_self_data(num_self_games_per_tree=25,
                          num_trees=40,
-                         in_game_itterations=200,
-                         training_itterations=2000,
+                         in_game_iterations=200,
+                         training_iterations=2000,
                          training_started = None,
                          current_version = None,
                          num_proc = 8,
@@ -197,8 +197,8 @@ def multi_make_self_data(num_self_games_per_tree=25,
     if current_version == None:
         current_version = open_data(file_path+'c4netST_versions/current_version.pkl')
     version_path = file_path+'c4netST_versions/'+current_version['name']
-    inputs = [(in_game_itterations,
-               training_itterations,
+    inputs = [(in_game_iterations,
+               training_iterations,
                num_self_games_per_tree,
                version_path) for n in range(num_trees)]
     #Takes about 70 minutes
@@ -228,8 +228,8 @@ def multi_make_self_data(num_self_games_per_tree=25,
 
 def multi_make_mini_data(mini_games_per_root = 50,
                          num_roots = 20,
-                         in_game_itterations = 200,
-                         training_itterations = 2000,
+                         in_game_iterations = 200,
+                         training_iterations = 2000,
                          training_started = None,
                          current_version = None,
                          num_proc = 8,
@@ -254,8 +254,8 @@ def multi_make_mini_data(mini_games_per_root = 50,
                      len_6_vals,
                      len_7_vals,
                      current_version['minimax_level_beat']+1,
-                     in_game_itterations,
-                     training_itterations,
+                     in_game_iterations,
+                     training_iterations,
                      mini_games_per_root,
                      version_path]
         inputs.append(to_append)
@@ -287,8 +287,8 @@ def multi_make_mini_data(mini_games_per_root = 50,
 
 
 def make_mini_data(mini_games=1000,
-                   in_game_itterations=200,
-                   training_itterations=2000,
+                   in_game_iterations=200,
+                   training_iterations=2000,
                    print_true =True,
                    training_started = None,
                    current_version = None,
@@ -314,7 +314,7 @@ def make_mini_data(mini_games=1000,
     print('Current Version:',current_version['name'])
     print('Minimax Level:',current_version['minimax_level_beat']+1,'\n')
     toc2=tt()
-    simulate(root_node,training_itterations)
+    simulate(root_node,training_iterations)
     tic2=tt()
     print('Training Time:',tic2-toc2)
     average_train_time = 0
@@ -336,7 +336,7 @@ def make_mini_data(mini_games=1000,
             toc1=tt()
             won,data=play_mini(root_node,
                                as_x=as_x,
-                               itterations=in_game_itterations,
+                               iterations=in_game_iterations,
                                print_true=True,
                                depth=depth+1,
                                row_mult=row_mult,
@@ -375,7 +375,7 @@ def make_mini_data(mini_games=1000,
             toc1=tt()
             won,data=play_mini(root_node,
                                as_x=as_x,
-                               itterations=in_game_itterations,
+                               iterations=in_game_iterations,
                                print_true=False,
                                depth=depth+1,
                                row_mult=row_mult,
@@ -413,7 +413,7 @@ def make_mini_data(mini_games=1000,
         if n%50 == 49:
             root_node = make_new_tree(model, add_noise = False)
             toc2=tt()
-            simulate(root_node,training_itterations)
+            simulate(root_node,training_iterations)
             tic2=tt()
             times_trained += 1
             average_train_time = ((times_trained-1)*average_train_time+tic2-toc2)/times_trained
@@ -438,8 +438,8 @@ def make_mini_data(mini_games=1000,
 
 
 
-def get_win_percent_testnet_vs_mini(training_itterations = 1,
-                                    in_game_itterations=400,
+def get_win_percent_testnet_vs_mini(training_iterations = 1,
+                                    in_game_iterations=400,
                                     num_games = 100,
                                     print_true = True,
                                     depth = None,
@@ -468,11 +468,11 @@ def get_win_percent_testnet_vs_mini(training_itterations = 1,
         depth = current_version['minimax_level_beat']+1
     print('Testing Minimax Level:',depth)
     root_node = make_new_tree(model, add_noise = False)
-    simulate(root_node,training_itterations)
+    simulate(root_node,training_iterations)
     for n in range(num_games):
         if n%50==0 and n!=0:
                 root_node = make_new_tree(model, add_noise = False)
-                simulate(root_node,training_itterations)
+                simulate(root_node,training_iterations)
                 as_x=not as_x
         row_mult=(random.random()+random.randint(1,2))
         col_mult=(random.random()+random.randint(1,2))
@@ -481,7 +481,7 @@ def get_win_percent_testnet_vs_mini(training_itterations = 1,
             toc1 = tt()
             won,data=play_mini(root_node,
                                     as_x=as_x,
-                                    itterations=in_game_itterations,
+                                    iterations=in_game_iterations,
                                     print_true=True,
                                     depth=depth+1,
                                     row_mult=row_mult,
@@ -515,7 +515,7 @@ def get_win_percent_testnet_vs_mini(training_itterations = 1,
             toc1=tt()
             won,data=play_mini(root_node,
                                     as_x=as_x,
-                                    itterations=in_game_itterations,
+                                    iterations=in_game_iterations,
                                     print_true=False,
                                     depth=depth+1,
                                     row_mult=row_mult,
@@ -566,7 +566,7 @@ def get_win_percent_testnet_vs_mini(training_itterations = 1,
 
 
 def get_win_percent_vs_current_version(version_path=None,
-                                       itterations=400,
+                                       iterations=400,
                                        num_games = 100,
                                        file_path = file_path):
     """For testing the test version vs current version. Single processor"""
@@ -586,7 +586,7 @@ def get_win_percent_vs_current_version(version_path=None,
             won,data=two_versions_play(current_model_root_node,
                                        test_model_root_node,
                                        current_version_as_x = as_x, 
-                                       itterations = itterations,
+                                       iterations = iterations,
                                        print_true = True)
             test_version_won+=won
             percent = round(100*test_version_won/(n+1),2)
@@ -595,7 +595,7 @@ def get_win_percent_vs_current_version(version_path=None,
             won,data=two_versions_play(current_model_root_node,
                                        test_model_root_node,
                                        current_version_as_x = as_x, 
-                                       itterations = itterations,
+                                       iterations = iterations,
                                        print_true = False)
             test_version_won+=won
             percent = round(100*test_version_won/(n+1),2)
@@ -616,7 +616,7 @@ def get_win_percent_vs_current_version(version_path=None,
 
 
 
-def multi_testnet_vs_mini(in_game_itterations = 400,
+def multi_testnet_vs_mini(in_game_iterations = 400,
                           num_proc = 8,
                           current_version = None,
                           depth = None,
@@ -640,21 +640,21 @@ def multi_testnet_vs_mini(in_game_itterations = 400,
     mults2 = [(w,x,y) for w in vals for x in vals for y in vals if w in [3,4]]
     mults3 = [(w,x,y) for w in vals2 for x in vals2 for y in vals2 if w in [1.4,2.1]]
     mults4 = [(w,x,y) for w in vals2 for x in vals2 for y in vals2 if w in [2.8,3.5]]
-    inputs = [[True, len_n_vals_lst, mults1,depth,in_game_itterations,test_version_path],
-              [True, len_n_vals_lst, mults2,depth,in_game_itterations,test_version_path],
-              [True, len_n_vals_lst, mults3,depth,in_game_itterations,test_version_path],
-              [True, len_n_vals_lst, mults4,depth,in_game_itterations,test_version_path],
-              [False, len_n_vals_lst, mults1,depth,in_game_itterations,test_version_path],
-              [False, len_n_vals_lst, mults2,depth,in_game_itterations,test_version_path],
-              [False, len_n_vals_lst, mults3,depth,in_game_itterations,test_version_path],
-              [False, len_n_vals_lst, mults4,depth,in_game_itterations,test_version_path]]
+    inputs = [[True, len_n_vals_lst, mults1,depth,in_game_iterations,test_version_path],
+              [True, len_n_vals_lst, mults2,depth,in_game_iterations,test_version_path],
+              [True, len_n_vals_lst, mults3,depth,in_game_iterations,test_version_path],
+              [True, len_n_vals_lst, mults4,depth,in_game_iterations,test_version_path],
+              [False, len_n_vals_lst, mults1,depth,in_game_iterations,test_version_path],
+              [False, len_n_vals_lst, mults2,depth,in_game_iterations,test_version_path],
+              [False, len_n_vals_lst, mults3,depth,in_game_iterations,test_version_path],
+              [False, len_n_vals_lst, mults4,depth,in_game_iterations,test_version_path]]
     with Pool(num_proc) as p:
         results_lst = p.starmap(multi_play_mini_only_result,inputs)
     win_percent = round(100*sum(results_lst)/256,2)
     return(win_percent,results_lst)
 
 
-def multi_testnet_vs_current(in_game_itterations = 400,
+def multi_testnet_vs_current(in_game_iterations = 400,
                              current_version_path = None,
                              file_path = file_path):
     """For testing the test version vs the current version. For multiprocessing"""
@@ -663,14 +663,14 @@ def multi_testnet_vs_current(in_game_itterations = 400,
         version_path = file_path+'c4netST_versions/'+current_version['name']
     else:
         version_path = current_version_path
-    inputs = [[version_path, True, in_game_itterations, 25, True],
-              [version_path, True, in_game_itterations, 25, True],
-              [version_path, True, in_game_itterations, 25, True],
-              [version_path, True, in_game_itterations, 25, True],
-              [version_path, False, in_game_itterations, 25, True],
-              [version_path, False, in_game_itterations, 25, True],
-              [version_path, False, in_game_itterations, 25, True],
-              [version_path, False, in_game_itterations, 25, True]]
+    inputs = [[version_path, True, in_game_iterations, 25, True],
+              [version_path, True, in_game_iterations, 25, True],
+              [version_path, True, in_game_iterations, 25, True],
+              [version_path, True, in_game_iterations, 25, True],
+              [version_path, False, in_game_iterations, 25, True],
+              [version_path, False, in_game_iterations, 25, True],
+              [version_path, False, in_game_iterations, 25, True],
+              [version_path, False, in_game_iterations, 25, True]]
     with Pool(8) as p:
         results_lst = p.starmap(multi_two_versions_play_only_result,inputs)
     win_percent = sum(results_lst)/2
@@ -683,7 +683,7 @@ def vs_mini_or_self(vs_mini,
                     len_n_vals_lst,
                     mult_lst,
                     depth,
-                    in_game_itterations = 400,
+                    in_game_iterations = 400,
                     version_path = file_path+'c4netST_versions/testversion',
                     add_noise = False):
     """For testing the test version vs the current version and minimax at the same time. For multiprocessing"""
@@ -692,17 +692,17 @@ def vs_mini_or_self(vs_mini,
                                               len_n_vals_lst,
                                               mult_lst,
                                               depth,
-                                              in_game_itterations,
+                                              in_game_iterations,
                                               version_path)
     else:
         num_won = multi_two_versions_play_only_result(current_version_path = version_path,
                                                       current_version_as_x = as_x, 
-                                                      itterations = in_game_itterations,
+                                                      iterations = in_game_iterations,
                                                       num_games = 25,
                                                       add_noise = add_noise)
     return num_won
 
-def multi_test(in_game_itterations = 400,
+def multi_test(in_game_iterations = 400,
                version_path = None,
                depth = None,
                file_path = file_path):
@@ -723,15 +723,15 @@ def multi_test(in_game_itterations = 400,
     vals = [1,2,3,4]
     mults1 = [(w,x,y) for w in vals for x in vals for y in vals if w in [1,2]]
     mults2 = [(w,x,y) for w in vals for x in vals for y in vals if w in [3,4]]
-    #       vs_mini, as_x, list_n_vals, mult_lsts,depth,in_game_itterations, current_version_path
-    inputs = [[True, True, len_n_vals_lst, mults1, depth, in_game_itterations, test_version_path, False],
-              [True, True, len_n_vals_lst, mults2, depth, in_game_itterations, test_version_path, False],
-              [True, False, len_n_vals_lst, mults1, depth, in_game_itterations, test_version_path, False],
-              [True, False, len_n_vals_lst, mults2, depth, in_game_itterations, test_version_path, False],
-              [False, True, None, None, None, in_game_itterations, current_version_path, False],
-              [False, False, None, None, None, in_game_itterations, current_version_path, False],
-              [False, True, None, None, None, in_game_itterations, current_version_path, False],
-              [False, False, None, None, None, in_game_itterations, current_version_path, False]]
+    #       vs_mini, as_x, list_n_vals, mult_lsts,depth,in_game_iterations, current_version_path
+    inputs = [[True, True, len_n_vals_lst, mults1, depth, in_game_iterations, test_version_path, False],
+              [True, True, len_n_vals_lst, mults2, depth, in_game_iterations, test_version_path, False],
+              [True, False, len_n_vals_lst, mults1, depth, in_game_iterations, test_version_path, False],
+              [True, False, len_n_vals_lst, mults2, depth, in_game_iterations, test_version_path, False],
+              [False, True, None, None, None, in_game_iterations, current_version_path, False],
+              [False, False, None, None, None, in_game_iterations, current_version_path, False],
+              [False, True, None, None, None, in_game_iterations, current_version_path, False],
+              [False, False, None, None, None, in_game_iterations, current_version_path, False]]
     with Pool(8) as p:
         results_lst = p.starmap(vs_mini_or_self,inputs)
     win_percent_vs_mini = round(100*sum(results_lst[:4])/128,2)
@@ -741,7 +741,7 @@ def multi_test(in_game_itterations = 400,
 def watch_games_vs_mini_multi_depths(version_path,
                                      min_depth,
                                      max_depth,
-                                     in_game_itterations,
+                                     in_game_iterations,
                                      only_final_board = True,
                                      file_path = file_path):
     """For watching games between a specified version and a set of minimax algs.  
@@ -779,7 +779,7 @@ def watch_games_vs_mini_multi_depths(version_path,
                                          len_n_vals_lst=len_n_vals_lst,
                                          mult=mult,
                                          depth = depth,
-                                         in_game_itterations = in_game_itterations,
+                                         in_game_iterations = in_game_iterations,
                                          version_path=version_path,
                                          watch_full_games = not only_final_board,
                                          print_final_board = only_final_board)
@@ -811,7 +811,7 @@ def watch_games_vs_mini_multi_depths(version_path,
                                          len_n_vals_lst=len_n_vals_lst,
                                          mult=mult,
                                          depth = depth,
-                                         in_game_itterations = in_game_itterations,
+                                         in_game_iterations = in_game_iterations,
                                          version_path=version_path,
                                          watch_full_games = not only_final_board,
                                          print_final_board = only_final_board)
@@ -854,8 +854,8 @@ def run_many_depth_tests(min_depth = 1,
     To check that everything is working correctly"""
     results = []
     for n in range(min_depth,max_depth+1):
-        result = get_win_percent_testnet_vs_mini(training_itterations = 1,
-                                                 in_game_itterations=400,
+        result = get_win_percent_testnet_vs_mini(training_iterations = 1,
+                                                 in_game_iterations=400,
                                                  num_games = 20,
                                                  print_true = True,
                                                  depth = n,
@@ -1208,8 +1208,8 @@ def make_initial_everything(file_path = file_path):
 #                               num_hours=.0000001,
 #                               train_for_time = False,
 #                               mini_games=1,
-#                               in_game_itterations=1,
-#                               training_itterations=1,
+#                               in_game_iterations=1,
+#                               training_iterations=1,
 #                               num_self_games_per_tree=1,
 #                               num_trees=1,
 #                               batch_size = 10000000000000000,

@@ -24,7 +24,7 @@ file_path = str(pathlib.Path(__file__).parent.resolve())+'\\c4netST_versions\\te
 def make_eval_function(to_load = file_path):
     """
     This function turns a keras model into a tensorflow lite model, and sets it to run on the CPU.  
-    tflite models evaluate faster, and setting it to run on the cpu allows for easier parallel 
+    tflite models evaluate faster, and setting it to run on the CPU allows for easier parallel 
     data generation on a machine with a single CPU and GPU.
 
     Parameters
@@ -523,7 +523,7 @@ def make_new_tree(model,add_noise = True):
     ----------
     model : keras model
     add_noise : Boolean
-        adds dirac delta noise to promote exploration. The default is True.
+        adds Dirac delta noise to promote exploration. The default is True.
 
     Returns
     -------
@@ -534,7 +534,7 @@ def make_new_tree(model,add_noise = True):
 
 
 def simulate(root_node,
-             itterations = 1000,
+             iterations = 1000,
              reset_edges = True):
     """
     makes a number of unique simulated moves to adjust the edge and node values
@@ -542,8 +542,8 @@ def simulate(root_node,
     Parameters
     ----------
     root_node : a root node
-    itterations : int, optional
-        The number of itterations to make
+    iterations : int, optional
+        The number of iterations to make
     reset_edges : boolean, optional
         Keeps track of the edges visited, after the game, 
         the edges will be kept but their info cleared. 
@@ -555,7 +555,7 @@ def simulate(root_node,
 
     """
     num_moves = 0
-    for n in range(itterations):
+    for n in range(iterations):
         new_node = root_node
         edge_lst =[]
         made_node = 0
@@ -588,7 +588,7 @@ def simulate(root_node,
 
 def self_train(model = None,
                root_node = None,
-               itterations = 1000,
+               iterations = 1000,
                print_true = True,
                reset_edges = False,
                print_final = True):
@@ -601,8 +601,8 @@ def self_train(model = None,
         the model used to evaluate the board state. The default is None.
     root_node : root node, optional
         a root node. The default is None.
-    itterations : int, optional
-        num itterations to make. The default is 1000.
+    iterations : int, optional
+        num iterations to make. The default is 1000.
     print_true : boolean, optional
         each game board. The default is True.
     reset_edges : boolean, optional
@@ -624,7 +624,7 @@ def self_train(model = None,
     turn_count =1
     while not root_node.is_leaf:
         toc = tt()
-        simulate(root_node,itterations, reset_edges)
+        simulate(root_node,iterations, reset_edges)
         tic = tt()
         sim_time += tic-toc
         root_node.update_pi()
@@ -665,13 +665,13 @@ def self_train(model = None,
 
 def self_train_test(model = None,
                root_node = None,
-               itterations = 20,
+               iterations = 20,
                print_true = True,
                reset_edges = False,
                print_final = True):
     """
     The MCTS model plays itself, but doesn't collect game data.
-    Note, one of model or rootnode must not be none
+    Note, one of model or root node must not be none
 
     Parameters
     ----------
@@ -679,8 +679,8 @@ def self_train_test(model = None,
         the model used to evaluate the board state. The default is None.
     root_node : root node, optional
         a root node. The default is None.
-    itterations : int, optional
-        num itterations to make. The default is 1000.
+    iterations : int, optional
+        num iterations to make. The default is 1000.
     print_true : boolean, optional
         each game board. The default is True.
     reset_edges : boolean, optional
@@ -702,7 +702,7 @@ def self_train_test(model = None,
     turn_count =1
     while not root_node.is_leaf:
         toc = tt()
-        simulate(root_node,itterations, reset_edges)
+        simulate(root_node,iterations, reset_edges)
         tic = tt()
         sim_time += tic-toc
         root_node.update_pi()
@@ -756,7 +756,7 @@ def self_train_test(model = None,
 
 def play_mini(root_node,
               as_x = True,
-              itterations = 100,
+              iterations = 100,
               print_true = True,
               depth = 4,
               row_mult = 1.5,
@@ -773,8 +773,8 @@ def play_mini(root_node,
     ----------
     root_node : root node, optional
         a root node. The default is None.
-    itterations : int, optional
-        num itterations to make. The default is 1000.
+    iterations : int, optional
+        num iterations to make. The default is 1000.
     print_true : boolean, optional
         each game board. The default is True.
     depth : int, optional
@@ -813,7 +813,7 @@ def play_mini(root_node,
     while not root_node.is_leaf:
         if turn_count%2==is_x:
             chooser = 'c4netST'
-            simulate(root_node,itterations)
+            simulate(root_node,iterations)
             root_node.update_pi()
             pi = root_node.pi
             # print(pi)
@@ -875,8 +875,8 @@ def multi_play_mini(as_x,
                     len_6_vals,
                     len_7_vals,
                     depth,
-                    in_game_itterations = 1000,
-                    training_itterations = 1,
+                    in_game_iterations = 1000,
+                    training_iterations = 1,
                     num_games = 25,
                     version_path = file_path):
     """
@@ -896,10 +896,10 @@ def multi_play_mini(as_x,
         Precomputed values, will be loaded prior to the multiprocessing call.
     depth : int
         minimax depth
-    in_game_itterations : int, optional
-        simulation itterations made in game. The default is 200.
-    training_itterations : int, optional
-        simulation itterations made prior to a game.  
+    in_game_iterations : int, optional
+        simulation iterations made in game. The default is 200.
+    training_iterations : int, optional
+        simulation iterations made prior to a game.  
         Idea is that the Tree can self train before playing the minimax. The default is 1.
     num_games : int, optional
         The number of games each tree will play. The default is 25.
@@ -924,7 +924,7 @@ def multi_play_mini(as_x,
             depths+=[n]
     data_lst = []
     beat_mini = 0
-    # simulate(root_node,training_itterations)
+    # simulate(root_node,training_iterations)
     reset = True
     
     for n in range(num_games):
@@ -935,7 +935,7 @@ def multi_play_mini(as_x,
         diag_mult=random.uniform(1,4)
         result,data = play_mini(root_node,
                                 as_x = as_x,
-                                itterations = in_game_itterations,
+                                iterations = in_game_iterations,
                                 print_true = False,
                                 depth = depths[np.random.randint(0,len(depths))],
                                 row_mult = row_mult,
@@ -974,7 +974,7 @@ def multi_play_mini_only_result(as_x,
                                 len_n_vals_lst,
                                 mult_lst,
                                 depth = 3,
-                                in_game_itterations = 400,
+                                in_game_iterations = 400,
                                 version_path = file_path):
     """
     Used for testing the model against a set of minimax algorithms. 
@@ -991,8 +991,8 @@ def multi_play_mini_only_result(as_x,
         list of multipliers for minimax
     depth : int, optional
         . The default is 3.
-    in_game_itterations : int, optional
-        simulation itterations made in game. The default is 400.
+    in_game_iterations : int, optional
+        simulation iterations made in game. The default is 400.
     version_path : string, optional
         the path to the model. The default is file_path.
 
@@ -1015,7 +1015,7 @@ def multi_play_mini_only_result(as_x,
         diag_mult = mults[2]
         result = play_mini(root_node,
                            as_x = as_x,
-                           itterations = in_game_itterations,
+                           iterations = in_game_iterations,
                            print_true = False,
                            depth = depth,
                            row_mult = row_mult,
@@ -1041,7 +1041,7 @@ def watch_games_vs_mini(as_x,
                         len_n_vals_lst,
                         mult,
                         depth,
-                        in_game_itterations,
+                        in_game_iterations,
                         version_path,
                         watch_full_games = True,
                         print_final_board = False):
@@ -1059,7 +1059,7 @@ def watch_games_vs_mini(as_x,
     diag_mult = mult[2]
     result = play_mini(root_node,
                        as_x = as_x,
-                       itterations = in_game_itterations,
+                       iterations = in_game_iterations,
                        print_true = watch_full_games,
                        depth = depth,
                        row_mult = row_mult,
@@ -1079,7 +1079,7 @@ def watch_games_vs_mini(as_x,
 def two_versions_play(current_version,
                       test_version,
                       current_version_as_x, 
-                      itterations,
+                      iterations,
                       print_true=True):
     """
     Two versions play each other. For testing and data generation
@@ -1093,13 +1093,13 @@ def two_versions_play(current_version,
     while not current_version.is_leaf or not test_version.is_leaf:
         if turn_count%2==is_x:
             chooser = 'Current c4netST'
-            simulate(current_version,itterations)
+            simulate(current_version,iterations)
             pi = current_version.pi
             move = pi.argmax()
             move = move+1
         else:
             chooser = 'test_version'
-            simulate(test_version,itterations)
+            simulate(test_version,iterations)
             pi = test_version.pi
             move = pi.argmax()
             move = move+1
@@ -1138,7 +1138,7 @@ def two_versions_play(current_version,
 
 def multi_two_versions_play_only_result(current_version_path,
                                         current_version_as_x=True, 
-                                        itterations=400,
+                                        iterations=400,
                                         num_games = 50,
                                         add_noise = False,
                                         test_version_path = file_path):
@@ -1165,14 +1165,14 @@ def multi_two_versions_play_only_result(current_version_path,
             print(current_version.boardstr)
             if turn_count%2 == is_x:
                 print('cv turn')
-                simulate(current_version,itterations)
+                simulate(current_version,iterations)
                 pi = current_version.pi
                 move = pi.argmax()
                 move = move+1
                 print(move)
             else:
                 print('tv turn')
-                simulate(test_version,itterations)
+                simulate(test_version,iterations)
                 pi = test_version.pi
                 move = pi.argmax()
                 move = move+1
@@ -1238,7 +1238,7 @@ def multi_two_versions_play_only_result(current_version_path,
 def self_train_many_games(model,
                           games=2,
                           trees =2,
-                          in_game_itterations=100,
+                          in_game_iterations=100,
                           training_iterations=500,
                           print_true=True,
                           training_started = None):
@@ -1270,11 +1270,11 @@ def self_train_many_games(model,
             toc1 = tt()
             if m%10==9 and print_true:
                 result,data = self_train(root_node=root_node,
-                                  itterations=in_game_itterations,
+                                  iterations=in_game_iterations,
                                   print_true=True)
             else:
                 result,data = self_train(root_node=root_node,
-                                  itterations=in_game_itterations,
+                                  iterations=in_game_iterations,
                                   print_true=False)
             tic1=tt()
             total_games+=1
@@ -1306,22 +1306,22 @@ def self_train_many_games(model,
     return(game_data)
 
 
-def multi_self_play(in_game_itterations = 200,
-                    training_itterations = 2000,
+def multi_self_play(in_game_iterations = 200,
+                    training_iterations = 2000,
                     games = 25,
                     version_path = file_path):
     """
     self play with multiprocessing.  For data generation.
     """
     model = make_eval_function(version_path)
-    # simulate(root_node,training_itterations)
+    # simulate(root_node,training_iterations)
     data_lst = []
     reset = True
     for n in range(games):
         if n%25 == 0:
             root_node = make_new_tree(model = model)
         data_lst.append(self_train(root_node = root_node,
-                                   itterations=in_game_itterations,
+                                   iterations=in_game_iterations,
                                    print_true = False))
         new_dirc = rng.dirichlet([1,2,3,4,5,6,7])
         half_edges = len(root_node.true_root.edges_visited)/2

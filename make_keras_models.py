@@ -43,7 +43,7 @@ def make_model_3():
 
     Returns
     -------
-    a keras model
+    a Keras model
 
     """
     import os
@@ -162,7 +162,7 @@ def make_model_2():
 
     Returns
     -------
-    a keras model
+    a Keras model
 
     """
     import os
@@ -245,7 +245,7 @@ def make_model():
 
     Returns
     -------
-    a keras model
+    a Keras model
 
     """
     import os
@@ -342,13 +342,13 @@ def make_model():
 # view the model
 def view_model(model,make_plot=False,model_name='c4net'):
     """
-    printe the model summary.  If make_plot is true, 
+    prints the model summary.  If make_plot is true, 
     it also makes and saves a pretty picture of the model to 
     the current working directory.
 
     Parameters
     ----------
-    model : a keras model
+    model : a Keras model
     make_plot : boolean, optional
         set to true to save a picture of the model. The default is False.
     model_name : a string, optional
@@ -373,7 +373,7 @@ def view_model(model,make_plot=False,model_name='c4net'):
 
 def transfer_model(version_path):
     """
-    Used for transfering the weights of a previous version to a new version.  
+    Used for transferring the weights of a previous version to a new version.  
     Should be used with models of the original type.
 
     Parameters
@@ -410,7 +410,7 @@ def transfer_model(version_path):
 
 def transfer_model_2(version_path):
     """
-    Used for transfering the weights of a previous version to a new version.  
+    Used for transferring the weights of a previous version to a new version.  
     Should be used with models of the second type.
 
     Parameters
@@ -453,7 +453,7 @@ def transfer_model_2(version_path):
 
 def transfer_model_3(version_path):
     """
-    Used for transfering the weights of a previous version to a new version.  
+    Used for transferring the weights of a previous version to a new version.  
     Should be used with models of the third type.
 
     Parameters
