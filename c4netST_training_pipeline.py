@@ -27,7 +27,7 @@ tt=time.time
 
 
 def clear_numba(file_path = file_path):
-    """Cached numba functions freak out over the sleightest change.  
+    """Cached numba functions freak out over the slightest change.  
     This function deletes them."""
     lst = os.listdir(file_path+'__pycache__')
     for file in lst:
