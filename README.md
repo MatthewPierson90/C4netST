@@ -1,5 +1,5 @@
 # C4netST (A RL algorithm based on AlphaGo Zero that plays connect four)
-Inspired by AlphaGo Zero. https://arxiv.org/abs/1712.01815  
+Inspired by AlphaGo Zero. https://deepmind.com/research/publications/2019/mastering-game-go-without-human-knowledge
 
 This program runs a Monte Carlo Tree Search (MCTS) algorithm for playing connect four.  
 To make each move, C4netST makes 1000 simulated moves and greedily chooses the move with the highest number of posiitive outcomes.  
