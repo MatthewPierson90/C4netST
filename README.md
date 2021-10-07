@@ -1,4 +1,4 @@
-# C4netST (A RL algorithm based on AlphaFo Zero that plays connect four)
+# C4netST (A RL algorithm based on AlphaGo Zero that plays connect four)
 Inspired by AlphaGo Zero. https://arxiv.org/abs/1712.01815  
 
 This program runs a Monte Carlo Tree Search (MCTS) algorithm for playing connect four.  
